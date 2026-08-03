@@ -1,6 +1,10 @@
 """
 disk_utils.py
-v3.0 - Yandex.Disk REST API helpers (async, aiohttp)
+v3.1 - Yandex.Disk REST API helpers (async, aiohttp)
+
+Changelog:
+- v3.1: added get_disk_info() for /space command (total/used quota).
+- v3.0: initial Yandex.Disk backend (ensure_folder, upload_file, publish).
 
 Replaces the previous Google drive_utils.py.
 API docs: https://yandex.ru/dev/disk-api/doc/ru/reference/
@@ -37,6 +41,20 @@ async def ensure_folder(session: aiohttp.ClientSession, token: str, path: str) -
     ) as resp:
         # 201 created, 409 already exists
         await _check(resp, ok=(201,), allow=(409,))
+
+
+async def get_disk_info(session: aiohttp.ClientSession, token: str) -> dict:
+    """
+    GET /v1/disk - general account info: total_space, used_space, trash_size.
+    This is account-level info, not a resource under a specific path, so in
+    principle it should be reachable even with the cloud_api:disk.app_folder
+    scope (untested against a real restricted-scope token — worth confirming
+    once deployed; if Yandex returns 403 here, the scope doesn't cover it and
+    we'd need a broader one, e.g. cloud_api:disk.info, to show quota).
+    """
+    async with session.get(f"{API}/", headers=_headers(token)) as resp:
+        await _check(resp, ok=(200,))
+        return await resp.json()
 
 
 async def upload_file(session: aiohttp.ClientSession, token: str,

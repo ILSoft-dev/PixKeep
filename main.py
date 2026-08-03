@@ -1,14 +1,13 @@
 """
 main.py
-v3.4 - CleanDrive Bot (multi-user, Yandex.Disk backend)
+v3.5 - CleanDrive Bot (multi-user, Yandex.Disk backend)
 
 Changelog:
-- v3.4: added /space command — shows total/used/free space and trash size
-        via GET /v1/disk. NOTE: this call is account-level info, not scoped
-        to a specific resource path, so it should in principle work even
-        under the restricted cloud_api:disk.app_folder scope — but this is
-        untested against a real token and needs confirming after deploy;
-        if Yandex returns 403, the app's scope would need widening.
+- v3.5: reverted /space (v3.4) — confirmed live that GET /v1/disk returns
+        403 under cloud_api:disk.app_folder scope. Showing quota would
+        require broadening to a whole-disk read scope, which isn't worth
+        trading away the "bot only sees its own folder" guarantee. Back to
+        app_folder-only, no disk-quota command.
 - v3.3: added a "❌ Отменить загрузку" button at every step (clean choice,
         rename choice, folder-name prompt). Cancelling wipes any downloaded/
         cleaned temp files and clears FSM state — nothing gets uploaded.
@@ -61,7 +60,6 @@ from disk_utils import (
     ensure_folder,
     upload_file,
     publish_and_get_url,
-    get_disk_info,
     YandexAuthError,
 )
 from oauth import build_auth_url, exchange_code, refresh_access_token
@@ -102,7 +100,6 @@ async def start(message: Message):
             "не занимали место.\n\n"
             "⚠️ Присылай как файл (📎 → Файл), а не как обычное фото — иначе "
             "Telegram сам пережмёт изображение.\n\n"
-            "/space — сколько места занято на Диске\n"
             "/logout — отключить Диск."
         )
         return
@@ -130,62 +127,6 @@ async def logout(message: Message):
         "Токен удалён из базы. Доступ приложения можно также отозвать вручную "
         "на странице yandex.ru/id (Мои приложения)."
     )
-
-
-def _bytes_to_human(n: int) -> str:
-    gb = n / (1024 ** 3)
-    if gb >= 1:
-        return f"{gb:.2f} ГБ"
-    return f"{n / (1024 ** 2):.1f} МБ"
-
-
-async def _get_disk_info_with_refresh(tokens: dict, telegram_id: int) -> dict:
-    """Same auto-refresh-on-401 pattern as _upload_all, just for GET /v1/disk."""
-    async def run(access_token: str) -> dict:
-        async with aiohttp.ClientSession() as session:
-            return await get_disk_info(session, access_token)
-
-    try:
-        return await run(tokens["access_token"])
-    except YandexAuthError:
-        new = await refresh_access_token(tokens["refresh_token"])
-        save_tokens(telegram_id, new["access_token"], new["refresh_token"])
-        return await run(new["access_token"])
-
-
-@dp.message(Command("space"))
-async def space(message: Message):
-    tokens = get_tokens(message.from_user.id)
-    if not tokens:
-        await message.answer("Диск не подключён. /start чтобы подключить.")
-        return
-
-    try:
-        info = await _get_disk_info_with_refresh(tokens, message.from_user.id)
-    except Exception as e:
-        logging.exception("get_disk_info failed")
-        await message.answer(
-            "Не удалось получить информацию о Диске.\n"
-            f"Ошибка: {e}\n\n"
-            "Возможно, текущего scope (cloud_api:disk.app_folder) недостаточно "
-            "для общей информации об аккаунте — тогда потребуется расширить "
-            "права приложения на Яндексе."
-        )
-        return
-
-    total = info.get("total_space")
-    used = info.get("used_space")
-    trash = info.get("trash_size")
-
-    lines = ["💾 Яндекс.Диск"]
-    if total is not None and used is not None:
-        free = total - used
-        lines.append(f"Всего: {_bytes_to_human(total)}")
-        lines.append(f"Занято: {_bytes_to_human(used)}")
-        lines.append(f"Свободно: {_bytes_to_human(free)}")
-    if trash is not None:
-        lines.append(f"Корзина: {_bytes_to_human(trash)}")
-    await message.answer("\n".join(lines))
 
 
 # ------------------------------------------------------------ media intake ---

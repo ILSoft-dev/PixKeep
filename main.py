@@ -1,8 +1,13 @@
 """
 main.py
-v3.1 - CleanDrive Bot (multi-user, Yandex.Disk backend)
+v3.2 - CleanDrive Bot (multi-user, Yandex.Disk backend)
 
 Changelog:
+- v3.2: fixed batching for files sent as separate messages (no shared
+        media_group_id) — some Telegram clients send multi-file "as
+        document" uploads this way instead of a real album. Now buffered
+        per-chat with a debounce: each new file resets a short timer, and
+        the whole burst is processed together once uploads pause.
 - v3.1: per-file tracking (message_id -> path -> upload name -> status).
         Upload continues past individual failures instead of aborting the
         whole batch. Final report lists successes/failures by exact
@@ -58,6 +63,15 @@ dp = Dispatcher(storage=MemoryStorage())
 
 media_groups: dict[str, list[Message]] = {}
 media_group_tasks: dict[str, asyncio.Task] = {}
+
+# Some Telegram clients send multi-file uploads (esp. "as file"/document)
+# as several separate messages WITHOUT a shared media_group_id, instead of
+# a real album. To still treat them as one batch, we buffer such messages
+# per chat and debounce: each new arrival resets the wait timer, and only
+# once SINGLES_DEBOUNCE_SECONDS pass with no new file do we process the batch.
+SINGLES_DEBOUNCE_SECONDS = 2.0
+pending_singles: dict[int, list[Message]] = {}
+pending_singles_tasks: dict[int, asyncio.Task] = {}
 
 
 class Flow(StatesGroup):
@@ -138,7 +152,27 @@ async def handle_media(message: Message, state: FSMContext):
                 _finish_group(gid, state, message.chat.id)
             )
     else:
-        await _process([message], state, message.chat.id)
+        chat_id = message.chat.id
+        pending_singles.setdefault(chat_id, []).append(message)
+        # Cancel any previously scheduled flush for this chat and reschedule —
+        # this is what lets a burst of individually-sent files get grouped.
+        old_task = pending_singles_tasks.get(chat_id)
+        if old_task and not old_task.done():
+            old_task.cancel()
+        pending_singles_tasks[chat_id] = asyncio.create_task(
+            _finish_singles(chat_id, state)
+        )
+
+
+async def _finish_singles(chat_id: int, state: FSMContext):
+    try:
+        await asyncio.sleep(SINGLES_DEBOUNCE_SECONDS)
+    except asyncio.CancelledError:
+        return  # a newer file arrived and rescheduled us; that task will run
+    messages = pending_singles.pop(chat_id, [])
+    pending_singles_tasks.pop(chat_id, None)
+    if messages:
+        await _process(messages, state, chat_id)
 
 
 async def _finish_group(gid: str, state: FSMContext, chat_id: int):

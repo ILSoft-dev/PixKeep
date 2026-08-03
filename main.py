@@ -1,8 +1,11 @@
 """
 main.py
-v3.2 - CleanDrive Bot (multi-user, Yandex.Disk backend)
+v3.3 - CleanDrive Bot (multi-user, Yandex.Disk backend)
 
 Changelog:
+- v3.3: added a "❌ Отменить загрузку" button at every step (clean choice,
+        rename choice, folder-name prompt). Cancelling wipes any downloaded/
+        cleaned temp files and clears FSM state — nothing gets uploaded.
 - v3.2: fixed batching for files sent as separate messages (no shared
         media_group_id) — some Telegram clients send multi-file "as
         document" uploads this way instead of a real album. Now buffered
@@ -218,6 +221,7 @@ async def _process(messages: list[Message], state: FSMContext, chat_id: int):
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🧹 Очистить метаданные", callback_data="clean:yes")],
         [InlineKeyboardButton(text="📤 Загрузить как есть", callback_data="clean:no")],
+        [InlineKeyboardButton(text="❌ Отменить загрузку", callback_data="cancel")],
     ])
     await bot.send_message(chat_id, note, reply_markup=kb)
 
@@ -259,6 +263,7 @@ async def on_clean_choice(cq: CallbackQuery, state: FSMContext):
                               callback_data="rename:yes")],
         [InlineKeyboardButton(text="📄 Нет, оставить имена",
                               callback_data="rename:no")],
+        [InlineKeyboardButton(text="❌ Отменить загрузку", callback_data="cancel")],
     ])
     await cq.message.edit_text(
         f"{verb} {len(items)} файл(ов).\n\n"
@@ -266,6 +271,21 @@ async def on_clean_choice(cq: CallbackQuery, state: FSMContext):
         reply_markup=kb,
     )
     await cq.answer()
+
+
+# ------------------------------------------------------------------ cancel ---
+@dp.callback_query(F.data == "cancel")
+async def on_cancel(cq: CallbackQuery, state: FSMContext):
+    """Works from any step of the flow (clean choice, rename choice, or
+    folder-name prompt) — wipes downloaded/cleaned temp files and clears
+    FSM state without uploading anything."""
+    data = await state.get_data()
+    work_dir = data.get("work_dir")
+    if work_dir and os.path.exists(work_dir):
+        shutil.rmtree(work_dir, ignore_errors=True)
+    await state.clear()
+    await cq.message.edit_text("❌ Отменено. Ничего не загружено, временные файлы удалены.")
+    await cq.answer("Отменено")
 
 
 # ------------------------------------------------------------ rename choice --
@@ -294,9 +314,13 @@ async def on_rename_choice(cq: CallbackQuery, state: FSMContext):
 
     tail = ("Имена будут 001, 002, 003…" if do_rename
             else "Оригинальные имена сохранены.")
+    cancel_kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="❌ Отменить загрузку", callback_data="cancel")],
+    ])
     await cq.message.edit_text(
         f"Ок. {tail}\n\n"
-        "Укажите имя папки на Яндекс.Диске. Если такой папки нет, она будет создана."
+        "Укажите имя папки на Яндекс.Диске. Если такой папки нет, она будет создана.",
+        reply_markup=cancel_kb,
     )
     await cq.answer()
 

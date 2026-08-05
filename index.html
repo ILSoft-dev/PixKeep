@@ -1,0 +1,1902 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>LINK — читайте книгу на двух языках</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#7A2E2E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="LINK">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=PT+Serif:ital,wght@0,400;0,700;1,400;1,700&family=Lora:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+    :root{
+        --bg:#FAF7F1;
+        --bg-soft:#F1EAE0;
+        --bg-card:#F5EFE5;
+        --text:#2B2622;
+        --text-soft:#7A6F63;
+        --accent:#7A2E2E;
+        --accent-soft:#F2DEDC;
+        --border:#E4DACA;
+        --shadow: 0 20px 60px rgba(43,38,34,0.10);
+    }
+    body.dark{
+        --bg:#1C1A17;
+        --bg-soft:#262320;
+        --bg-card:#221F1B;
+        --text:#EAE3D6;
+        --text-soft:#A89E8E;
+        --accent:#E0959B;
+        --accent-soft:#3A2526;
+        --border:#3A352F;
+        --shadow: 0 20px 60px rgba(0,0,0,0.35);
+    }
+    *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    html,body{ margin:0; padding:0; }
+    body{
+        min-height:100vh; min-height:100dvh;
+        background:var(--bg); color:var(--text);
+        font-family:'PT Serif', Georgia, serif;
+        transition:background .3s, color .3s;
+    }
+    ::selection{ background:var(--accent-soft); }
+
+    /* ===== Круглые кнопки (общий стиль везде в приложении) ===== */
+    .round-btn{
+        width:42px; height:42px; min-width:42px; border-radius:50%;
+        border:1px solid var(--border);
+        background:var(--bg-soft); color:var(--text);
+        display:flex; align-items:center; justify-content:center;
+        font-size:1.05rem; cursor:pointer;
+        transition:background .2s, transform .15s, border-color .2s;
+        flex-shrink:0; padding:0;
+    }
+    .round-btn:hover{ border-color:var(--accent); }
+    .round-btn:active{ transform:scale(0.92); }
+    .round-btn.active{ background:var(--accent); color:var(--bg-card); border-color:var(--accent); }
+    .round-btn:disabled{ opacity:.3; cursor:not-allowed; }
+    .round-btn.font-glyph{ font-family:'Inter',sans-serif; font-weight:700; font-size:.85rem; }
+
+    #themeToggle{ position:fixed; top:1.1rem; right:1.1rem; z-index:120; }
+    #themeToggle.in-topbar{ position:static; top:auto; right:auto; z-index:auto; }
+    #helpBtn{ position:fixed; top:1.1rem; left:1.1rem; z-index:120; }
+
+    /* ============================================================
+       ЭКРАН ЗАГРУЗКИ
+       ============================================================ */
+    #uploadScreen{
+        display:flex; flex-direction:column; align-items:center;
+        padding:2.5rem 1.25rem 2rem; min-height:100vh; min-height:100dvh;
+    }
+    header{ text-align:center; margin-bottom:2.2rem; }
+    .brand{
+        font-family:'Lora', serif; font-weight:700;
+        font-size:clamp(2.6rem, 11vw, 3.4rem);
+        color:var(--accent); letter-spacing:.01em; margin:0; line-height:1;
+    }
+    .tagline{
+        font-family:'Inter', sans-serif; font-size:.72rem; letter-spacing:.22em;
+        text-transform:uppercase; color:var(--text-soft); margin:.7rem 0 0;
+    }
+    .card{
+        width:100%; max-width:460px; background:var(--bg-card);
+        border:1px solid var(--border); border-radius:20px;
+        box-shadow:var(--shadow); padding:1.6rem;
+    }
+    .dropzones{ display:flex; flex-direction:column; gap:0; }
+    .dropzone{
+        border:1.5px dashed var(--border); border-radius:14px;
+        padding:1.5rem 1.1rem; text-align:center; cursor:pointer;
+        transition:border-color .2s, background .2s; position:relative;
+    }
+    .dropzone.dragover{ border-color:var(--accent); background:var(--accent-soft); }
+    .dropzone.filled{ border-style:solid; border-color:var(--accent); }
+    .dz-icon{ font-size:1.9rem; margin-bottom:.5rem; opacity:.85; }
+    .dz-label{
+        font-family:'Inter', sans-serif; font-weight:600; font-size:.85rem;
+        letter-spacing:.03em; text-transform:uppercase; color:var(--accent); margin-bottom:.35rem;
+    }
+    .dz-hint{ font-size:.95rem; color:var(--text); margin-bottom:.3rem; }
+    .dz-meta{ font-family:'Inter', sans-serif; font-size:.7rem; color:var(--text-soft); }
+    .dz-filename{ margin-top:.6rem; font-family:'Inter', sans-serif; font-size:.78rem; color:var(--text-soft); word-break:break-all; }
+    .dz-filename.has-file{ color:var(--accent); font-weight:500; }
+    .dz-error{ margin-top:.5rem; font-family:'Inter',sans-serif; font-size:.75rem; color:#B33; }
+    .swap-row{ display:flex; align-items:center; justify-content:center; gap:.7rem; margin:.6rem 0; }
+    .swap-row .line{ flex:1; height:1px; background:var(--border); transition:background .5s; }
+    .swap-row.connected .line{ background:var(--accent); }
+    .swap-row.pulse .line{ animation:linkPulse .9s ease; }
+    @keyframes linkPulse{
+        0%{ background:var(--border); box-shadow:none; }
+        45%{ background:var(--accent); box-shadow:0 0 10px var(--accent); }
+        100%{ background:var(--accent); box-shadow:none; }
+    }
+    .swap-btn.spin{ animation:spin .35s ease; }
+    @keyframes spin{ from{ transform:rotate(0deg);} to{ transform:rotate(180deg);} }
+
+    .cta-row{ display:flex; gap:.7rem; margin-top:1.4rem; }
+    .cta-btn{
+        flex:1; padding:.95rem; border:none; border-radius:12px;
+        font-family:'Inter', sans-serif; font-weight:600; font-size:.95rem;
+        letter-spacing:.04em; text-transform:uppercase;
+        cursor:pointer; transition:opacity .2s, transform .15s;
+        background:var(--accent); color:var(--bg-card);
+    }
+    .cta-btn.secondary{ background:var(--bg-soft); color:var(--accent); border:1px solid var(--accent); }
+    .cta-btn:disabled{ opacity:.35; cursor:not-allowed; }
+    .cta-btn:not(:disabled):active{ transform:scale(0.98); }
+    .cta-hint{ margin-top:.6rem; font-family:'Inter',sans-serif; font-size:.72rem; color:var(--text-soft); text-align:center; }
+    .status{ margin-top:.9rem; font-family:'Inter', sans-serif; font-size:.8rem; color:var(--text-soft); text-align:center; min-height:1.1em; }
+    footer{ margin-top:2.2rem; font-family:'Inter', sans-serif; font-size:.78rem; color:var(--text-soft); text-align:center; }
+
+    /* ============================================================
+       ЧИТАЛКА
+       ============================================================ */
+    #readerView{ display:none; }
+    #readerView.active{ display:block; }
+
+    .reader-topbar{
+        position:fixed; top:0; left:0; right:0; z-index:90;
+        display:flex; align-items:center; gap:.5rem;
+        padding:.6rem .8rem; background:var(--bg);
+        border-bottom:1px solid var(--border);
+        transition:background .3s, border-color .3s, transform .25s ease;
+    }
+    .reader-topbar.hidden{ transform:translateY(-100%); }
+    .chapter-indicator{
+        flex:1; font-family:'Inter',sans-serif; font-size:.75rem;
+        letter-spacing:.04em; text-transform:uppercase; color:var(--text-soft);
+        white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-align:center;
+    }
+    .progress-track{
+        position:fixed; top:59px; left:0; right:0; height:2px; background:var(--border); z-index:89;
+        transition:transform .25s ease;
+    }
+    .progress-track.hidden{ transform:translateY(-59px); }
+    .progress-fill{ height:100%; width:0%; background:var(--accent); transition:width .1s; }
+
+    .book-content{
+        max-width:640px; margin:0 auto;
+        padding:5.2rem 1.3rem 6.5rem;
+        font-size:1rem; line-height:1.75;
+    }
+    body.dark .book-content{ }
+    .book-content.font-scale{ }
+    .book-content p{ margin:0 0 1.15rem; text-indent:1.4rem; position:relative; }
+    .book-content h2.chapter-title{
+        font-family:'Lora', serif; font-weight:700; font-size:1.35rem;
+        margin:2.4rem 0 1.3rem; border-bottom:1px solid var(--border); padding-bottom:.6rem;
+    }
+    .book-content h2.chapter-title:first-child{ margin-top:0; }
+
+
+    .bottom-panel{
+        position:fixed; bottom:0; left:0; right:0; z-index:100;
+        background:var(--bg); border-top:1px solid var(--border);
+        padding:.5rem .6rem calc(.5rem + env(safe-area-inset-bottom));
+        transition:background .3s, border-color .3s, transform .25s ease;
+    }
+    .bottom-panel.hidden{ transform:translateY(100%); }
+    .controls{
+        display:flex; gap:.5rem; align-items:center; justify-content:center;
+        overflow-x:auto; -ms-overflow-style:none; scrollbar-width:none;
+    }
+    .controls::-webkit-scrollbar{ display:none; }
+
+    /* Три плавающие кнопки внизу справа: ☰ (восстановить панели), ▲, ▼ —
+       появляются вместе, когда панели скрыты при чтении.
+       ☰ остаётся в самом углу (её позиция не связана со стрелками).
+       Стрелки ▲▼ — на границе средней и нижней трети экрана (т.е. на
+       высоте 1/3 viewport считая от низа) — так они оказываются под
+       большим пальцем при чтении одной рукой, а не в углу у самого низа.
+       --nav-btn-gap — расстояние между самими стрелками (одинаковое
+       и между ☰ и ▼ было раньше, теперь эти группы независимы). */
+    :root{ --nav-btn-gap: 2rem; --nav-btn-size: 42px; --nav-btn-bottom: 2rem; --scroll-btn-boundary: calc(100vh / 3); }
+    .floating-nav-btn{
+        position:fixed; right:1rem; z-index:101; box-shadow:var(--shadow);
+        opacity:0; transform:scale(.8); pointer-events:none;
+        transition:opacity .2s, transform .2s;
+    }
+    .floating-nav-btn.show{ opacity:1; transform:scale(1); pointer-events:auto; }
+    #panelRestoreBtn{ bottom:32px; bottom:calc(var(--nav-btn-bottom) + env(safe-area-inset-bottom)); }
+    #scrollDownBtn{ bottom:230px; bottom:var(--scroll-btn-boundary); }
+    #scrollUpBtn{ bottom:282px; bottom:calc(var(--scroll-btn-boundary) + var(--nav-btn-size) + var(--nav-btn-gap)); }
+
+    .tts-indicator{
+        position:fixed; top:70px; right:1rem; z-index:95;
+        background:var(--bg-soft); border:1px solid var(--accent); border-radius:20px;
+        padding:4px 12px; font-family:'Inter',sans-serif; font-size:.7rem; color:var(--accent);
+        opacity:0; transition:opacity .3s; pointer-events:none;
+    }
+    .tts-indicator.on{ opacity:1; }
+
+    /* ===== Панель закладок (снизу вверх, как раньше) ===== */
+    .bookmarks-panel{
+        position:fixed; bottom:0; left:0; right:0; z-index:110;
+        background:var(--bg-card); border-top:2px solid var(--accent);
+        padding:1rem 1rem 6rem; max-height:65vh; max-height:65dvh; overflow-y:auto;
+        transform:translateY(100%); transition:transform .3s ease;
+        box-shadow:0 -10px 40px var(--shadow);
+    }
+    .bookmarks-panel.open{ transform:translateY(0); }
+    .panel-header{
+        display:flex; justify-content:space-between; align-items:center;
+        font-family:'Lora',serif; font-weight:700; font-size:1.05rem; margin-bottom:.9rem;
+    }
+    .close-btn{ background:none; border:none; color:var(--text-soft); font-size:1.1rem; cursor:pointer; }
+    .bookmark-item{
+        display:flex; align-items:center; gap:.6rem; padding:.7rem 0;
+        border-bottom:1px solid var(--border); cursor:pointer;
+    }
+    .bookmark-item .info{ flex:1; }
+    .bookmark-item .chapter{ font-family:'Inter',sans-serif; font-size:.7rem; text-transform:uppercase; letter-spacing:.04em; color:var(--accent); margin-bottom:.2rem; }
+    .bookmark-item .preview{ font-size:.9rem; color:var(--text-soft); }
+    .bookmark-item .delete-btn{ background:none; border:none; color:var(--text-soft); font-size:1rem; cursor:pointer; padding:.4rem; }
+    .empty-msg{ text-align:center; opacity:.5; padding:2rem 0; font-family:'Inter',sans-serif; font-style:italic; }
+
+    .shelf-item{
+        display:flex; align-items:center; gap:.8rem; padding:.8rem 0;
+        border-bottom:1px solid var(--border); cursor:pointer;
+    }
+    .shelf-item .icon{ font-size:1.4rem; flex-shrink:0; }
+    .shelf-item .info{ flex:1; min-width:0; }
+    .shelf-item .title{
+        font-family:'Inter',sans-serif; font-weight:600; font-size:.92rem;
+        white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .shelf-item .meta{ font-family:'Inter',sans-serif; font-size:.72rem; color:var(--text-soft); margin-top:.2rem; }
+    .shelf-progress{ height:3px; background:var(--border); border-radius:2px; margin-top:.4rem; overflow:hidden; }
+    .shelf-progress .fill{ height:100%; background:var(--accent); }
+    .shelf-percent{
+        font-family:'Inter',sans-serif; font-size:.75rem; color:var(--text-soft);
+        min-width:2.6em; text-align:right; flex-shrink:0;
+    }
+    .shelf-item .delete-btn{ background:none; border:none; color:var(--text-soft); font-size:1rem; cursor:pointer; padding:.4rem; flex-shrink:0; }
+
+    /* ===== Модалка ===== */
+    .modal-overlay{
+        position:fixed; inset:0; background:rgba(20,16,12,.5); z-index:200;
+        display:none; align-items:center; justify-content:center; padding:1rem;
+    }
+    .modal-overlay.open{ display:flex; }
+    .modal{
+        background:var(--bg-card); border:1px solid var(--border); border-radius:16px;
+        padding:1.4rem; max-width:520px; width:100%; max-height:80vh; max-height:80dvh; overflow-y:auto;
+    }
+    .modal-header{
+        display:flex; justify-content:space-between; align-items:flex-start; gap:1rem;
+        font-family:'Lora',serif; font-weight:700; font-size:1.15rem; margin-bottom:1rem;
+    }
+    .modal-body{ font-size:.95rem; line-height:1.65; }
+    .modal-body input[type="password"]{
+        width:100%; padding:.6rem .7rem; border:1px solid var(--border); border-radius:8px;
+        background:var(--bg-soft); color:var(--text); font-family:'Inter',sans-serif; margin-top:.4rem;
+    }
+    .btn-primary{
+        margin-top:.7rem; padding:.6rem 1.1rem; border:none; border-radius:8px;
+        background:var(--accent); color:var(--bg-card); font-family:'Inter',sans-serif;
+        font-weight:600; cursor:pointer;
+    }
+    .loading{ text-align:center; padding:1.5rem 0; font-family:'Inter',sans-serif; color:var(--text-soft); }
+    .loading-spinner{
+        width:28px; height:28px; margin:0 auto .8rem;
+        border:3px solid var(--border); border-top-color:var(--accent);
+        border-radius:50%; animation:spinLoader .7s linear infinite;
+    }
+    @keyframes spinLoader{ to{ transform:rotate(360deg); } }
+    .summary-text, .comment-text{ font-family:'PT Serif', serif; line-height:1.75; white-space:pre-wrap; }
+
+    /* ===== Тулбар выделения =====
+       Не пытаемся всплыть ровно над выделением (там же рисует свою карточку
+       нативное меню "Копировать/Поделиться" — а его средствами страницы не
+       перекрыть, это отдельный слой ОС/браузера). Вместо этого держим свою
+       панель отдельной зоной внизу экрана — она никогда не спорит за одно
+       и то же место с системным меню. */
+    .selection-toolbar{
+        position:fixed; left:0; right:0; bottom:76px; z-index:150;
+        display:none; justify-content:center; gap:.5rem;
+        pointer-events:none; /* включаем только когда есть выделение, см. .open */
+    }
+    .selection-toolbar.open{ display:flex; }
+    .selection-toolbar .st-inner{
+        display:flex; gap:4px; pointer-events:auto;
+        background:var(--bg-card); border:1px solid var(--border); border-radius:12px;
+        padding:5px; box-shadow:var(--shadow);
+    }
+    .selection-toolbar button{
+        background:none; border:none; color:var(--text); padding:7px 12px;
+        cursor:pointer; border-radius:8px; font-size:.85rem; font-family:'Inter',sans-serif;
+        display:flex; align-items:center; gap:5px; white-space:nowrap;
+    }
+    .selection-toolbar button:hover{ background:var(--accent-soft); color:var(--accent); }
+
+    /* ===== Панель оглавления ===== */
+    .toc-overlay{ position:fixed; inset:0; background:rgba(20,16,12,.4); z-index:129; display:none; }
+    .toc-overlay.open{ display:block; }
+    .toc-panel{
+        position:fixed; top:0; left:0; bottom:0; z-index:130;
+        width:280px; max-width:82vw;
+        height:100vh; height:100dvh;
+        background:var(--bg-card); border-right:1px solid var(--border);
+        padding:1.3rem 1.1rem; overflow-y:auto;
+        transform:translateX(-100%); transition:transform .3s ease;
+        box-shadow:var(--shadow);
+    }
+    .toc-panel.open{ transform:translateX(0); }
+    .toc-item{
+        display:flex; align-items:baseline; gap:.7rem;
+        padding:.8rem 0; border-bottom:1px solid var(--border);
+        cursor:pointer; font-family:'Inter',sans-serif;
+    }
+    .toc-item .num{ font-variant-numeric:tabular-nums; color:var(--text-soft); font-size:.78rem; min-width:1.3em; }
+    .toc-item .title{ font-size:.92rem; line-height:1.4; }
+    .toc-item:hover .title, .toc-item:hover .num{ color:var(--accent); }
+
+    @media (max-width:480px){
+        .card{ padding:1.3rem; }
+        .book-content{ padding-left:1.6rem; padding-right:1rem; }
+    }
+</style>
+</head>
+<body>
+
+    <button id="themeToggle" class="round-btn" title="Переключить тему">🌙</button>
+    <button id="helpBtn" class="round-btn" title="Как это работает">?</button>
+
+    <!-- ============================================================
+         ЭКРАН ЗАГРУЗКИ
+         ============================================================ -->
+    <div id="uploadScreen">
+        <header>
+            <h1 class="brand">LINK</h1>
+            <p class="tagline">Читайте книгу на двух языках одновременно</p>
+            <div id="shelfLinkWrap" style="display:none;margin-top:1rem;">
+                <button id="shelfOpenBtn" class="cta-btn secondary" style="width:auto;display:inline-block;padding:.6rem 1.3rem;">📚 Моя полка <span id="shelfCount"></span></button>
+            </div>
+        </header>
+
+        <main class="card" id="uploadCard">
+            <div class="dropzones">
+                <div class="dropzone" id="zoneA" tabindex="0" role="button" aria-label="Загрузить основной текст для чтения">
+                    <div class="dz-icon">📖</div>
+                    <div class="dz-label" id="labelA">Текст для чтения</div>
+                    <div class="dz-hint">Перетащите файл сюда или нажмите, чтобы выбрать</div>
+                    <div class="dz-meta">.txt · .fb2 · .epub · .pdf · .docx · .html · .zip</div>
+                    <div class="dz-filename" id="filenameA">Файл не выбран</div>
+                    <div class="dz-error" id="errorA"></div>
+                    <input type="file" id="fileA" accept=".txt,.fb2,.epub,.pdf,.docx,.html,.htm,.zip" hidden>
+                </div>
+
+                <div class="swap-row">
+                    <div class="line"></div>
+                    <button class="round-btn swap-btn" id="swapBtn" title="Поменять языки местами" aria-label="Поменять языки местами">⇄</button>
+                    <div class="line"></div>
+                </div>
+
+                <div class="dropzone" id="zoneB" tabindex="0" role="button" aria-label="Загрузить оригинал для сравнения (необязательно)">
+                    <div class="dz-icon">🔤</div>
+                    <div class="dz-label" id="labelB">Оригинал <span style="opacity:.6;font-weight:400;">(необязательно)</span></div>
+                    <div class="dz-hint">Для сравнения и «Комментария»</div>
+                    <div class="dz-meta">.txt · .fb2 · .epub · .pdf · .docx · .html · .zip</div>
+                    <div class="dz-filename" id="filenameB">Файл не выбран</div>
+                    <div class="dz-error" id="errorB"></div>
+                    <input type="file" id="fileB" accept=".txt,.fb2,.epub,.pdf,.docx,.html,.htm,.zip" hidden>
+                </div>
+            </div>
+
+            <div class="cta-row">
+                <button class="cta-btn secondary" id="readBtn" disabled>Читать</button>
+                <button class="cta-btn" id="linkBtn" disabled>LINK</button>
+            </div>
+            <div class="cta-hint">«Читать» — только загруженный текст. «LINK» — оба файла: сравнение с оригиналом и разбор отрывков.</div>
+            <div class="status" id="status"></div>
+        </main>
+
+        <footer>LINK — читать книгу на двух языках сразу</footer>
+    </div>
+
+    <!-- ============================================================
+         ЧИТАЛКА
+         ============================================================ -->
+    <div id="readerView">
+        <div class="reader-topbar" id="readerTopbar">
+            <button id="backBtn" class="round-btn" title="К загрузке">←</button>
+            <div class="chapter-indicator" id="chapterIndicator"></div>
+            <button id="tocToggle" class="round-btn" title="Оглавление">☰</button>
+        </div>
+        <div class="progress-track" id="progressTrack"><div class="progress-fill" id="progressBar"></div></div>
+
+        <button id="panelRestoreBtn" class="round-btn floating-nav-btn" title="Показать панели">☰</button>
+        <button id="scrollUpBtn" class="round-btn floating-nav-btn" title="Пролистать вверх">▲</button>
+        <button id="scrollDownBtn" class="round-btn floating-nav-btn" title="Пролистать вниз">▼</button>
+
+        <div class="tts-indicator" id="ttsIndicator">🔊 читаю…</div>
+
+        <div class="book-content" id="bookContent"></div>
+
+        <div class="bottom-panel" id="bottomPanel">
+            <div class="controls">
+                <button id="fontDec" class="round-btn font-glyph" title="Уменьшить шрифт">A−</button>
+                <button id="fontInc" class="round-btn font-glyph" title="Увеличить шрифт">A+</button>
+                <button id="bookmarkToggle" class="round-btn" title="Добавить закладку">🔖</button>
+                <button id="bookmarksPanelToggle" class="round-btn" title="Список закладок">📚</button>
+                <button id="summaryBtn" class="round-btn" title="Саммари прочитанного">📋</button>
+                <button id="ttsBtn" class="round-btn" title="Читать вслух">🔊</button>
+                <button id="settingsBtn" class="round-btn" title="Настройки API-ключа">⚙️</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ПАНЕЛЬ ЗАКЛАДОК -->
+    <div class="bookmarks-panel" id="shelfPanel">
+        <div class="panel-header"><span>📚 Моя полка</span><button class="close-btn" id="shelfClose">✕</button></div>
+        <div id="shelfList"><div class="empty-msg">Пока нет сохранённых книг</div></div>
+    </div>
+
+    <div class="bookmarks-panel" id="bookmarksPanel">
+        <div class="panel-header"><span>📚 Закладки</span><button class="close-btn" id="bookmarksClose">✕</button></div>
+        <div id="bookmarksList"><div class="empty-msg">Нет закладок</div></div>
+    </div>
+
+    <!-- ПАНЕЛЬ ОГЛАВЛЕНИЯ -->
+    <div class="toc-overlay" id="tocOverlay"></div>
+    <div class="toc-panel" id="tocPanel">
+        <div class="panel-header"><span>☰ Оглавление</span><button class="close-btn" id="tocClose">✕</button></div>
+        <div id="tocList"></div>
+    </div>
+
+    <!-- МОДАЛКА -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal" id="modal">
+            <div class="modal-header"><span id="modalTitle">Заголовок</span><button class="close-btn" id="modalClose">✕</button></div>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+
+    <!-- ТУЛБАР ВЫДЕЛЕНИЯ -->
+    <div class="selection-toolbar" id="selectionToolbar">
+        <div class="st-inner">
+            <button id="selectionTranslateBtn">🌐 Перевод</button>
+            <button id="selectionCommentBtn">💬 Комментарий</button>
+            <button id="selectionOriginalBtn" style="display:none;">📄 Оригинал</button>
+        </div>
+    </div>
+
+<script src="./jszip.min.js"></script>
+<script>
+    // ============================================================
+    // БЕЗОПАСНАЯ ОБЁРТКА НАД localStorage
+    // ============================================================
+    const safeStorage = (() => {
+        const memory = {};
+        let available = true;
+        try {
+            const testKey = '__storage_test__';
+            localStorage.setItem(testKey, '1');
+            localStorage.removeItem(testKey);
+        } catch (e) {
+            available = false;
+            console.warn('⚠️ localStorage недоступен, использую временное хранилище в памяти:', e && e.message);
+        }
+        return {
+            getItem(key) {
+                if (available) {
+                    try { return localStorage.getItem(key); } catch (e) { available = false; }
+                }
+                return Object.prototype.hasOwnProperty.call(memory, key) ? memory[key] : null;
+            },
+            setItem(key, value) {
+                if (available) {
+                    try { localStorage.setItem(key, value); return; } catch (e) { available = false; }
+                }
+                memory[key] = String(value);
+            }
+        };
+    })();
+
+    const $ = id => document.getElementById(id);
+
+    // ============================================================
+    // ТЕМА И РАЗМЕР ШРИФТА (глобальные настройки — не привязаны к книге)
+    // ============================================================
+    const themeBtn = $('themeToggle');
+    function setTheme(dark) {
+        document.body.classList.toggle('dark', dark);
+        themeBtn.textContent = dark ? '☀️' : '🌙';
+        safeStorage.setItem('link_theme', dark ? 'dark' : 'light');
+    }
+    let storedTheme = safeStorage.getItem('link_theme');
+    let prefersDark = false;
+    try { prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches; } catch (e) {}
+    setTheme(storedTheme ? storedTheme === 'dark' : prefersDark);
+    themeBtn.addEventListener('click', () => setTheme(!document.body.classList.contains('dark')));
+
+    let fontSize = parseFloat(safeStorage.getItem('link_fontSize')) || 1.0;
+    function applyFontSize() {
+        const bc = $('bookContent');
+        if (bc) bc.style.fontSize = fontSize + 'rem';
+    }
+    function setFontSize(size) {
+        fontSize = Math.min(1.6, Math.max(0.8, size));
+        safeStorage.setItem('link_fontSize', fontSize);
+        applyFontSize();
+    }
+    $('fontDec').addEventListener('click', () => setFontSize(fontSize - 0.1));
+    $('fontInc').addEventListener('click', () => setFontSize(fontSize + 0.1));
+
+    // ============================================================
+    // ПАРСИНГ ФАЙЛОВ (.txt / .fb2)
+    // ============================================================
+    function parseTXT(text) {
+        const rawParas = text.split(/\r?\n\s*\r?\n/).map(s => s.trim().replace(/\s+/g, ' ')).filter(Boolean);
+        const chapterRe = /^(глава|часть|chapter|part|book)\s+[\divxlcm\d]+/i;
+        const chapters = [];
+        let current = { title: '', paragraphs: [] };
+        for (const para of rawParas) {
+            if (para.length < 60 && chapterRe.test(para)) {
+                if (current.paragraphs.length) chapters.push(current);
+                current = { title: para, paragraphs: [] };
+            } else {
+                current.paragraphs.push(para);
+            }
+        }
+        if (current.paragraphs.length) chapters.push(current);
+        if (!chapters.length) throw new Error('Не нашлось ни одного абзаца — файл пуст или разбит по-другому.');
+        return chapters;
+    }
+
+    function parseFB2(xmlText) {
+        const doc = new DOMParser().parseFromString(xmlText, 'application/xml');
+        if (doc.querySelector('parsererror')) throw new Error('Не удалось разобрать файл как FB2 (некорректный XML).');
+        const body = doc.querySelector('FictionBook > body') || doc.querySelector('body');
+        if (!body) throw new Error('В файле не найден <body> — это точно FB2?');
+
+        function isInsideTitle(elm) {
+            let p = elm.parentElement;
+            while (p) { if (p.tagName && p.tagName.toLowerCase() === 'title') return true; p = p.parentElement; }
+            return false;
+        }
+
+        const chapters = [];
+        let current = { title: '', paragraphs: [] };
+        const walker = document.createTreeWalker(body, NodeFilter.SHOW_ELEMENT);
+        let node = walker.currentNode;
+        while (node) {
+            const tag = node.tagName ? node.tagName.toLowerCase() : '';
+            if (tag === 'title') {
+                if (current.paragraphs.length) chapters.push(current);
+                current = { title: node.textContent.trim().replace(/\s+/g, ' '), paragraphs: [] };
+            } else if (tag === 'p' && !isInsideTitle(node)) {
+                const text = node.textContent.trim().replace(/\s+/g, ' ');
+                if (text) current.paragraphs.push(text);
+            }
+            node = walker.nextNode();
+        }
+        if (current.paragraphs.length) chapters.push(current);
+        if (!chapters.length) throw new Error('В FB2 не нашлось ни одного абзаца <p> с текстом.');
+        return chapters;
+    }
+
+    // Извлечение .txt/.fb2 из архива .zip: ищем подходящий файл внутри,
+    // игнорируя служебные (__MACOSX, скрытые). Если найдено несколько —
+    // предпочитаем .fb2 (более структурирован), а среди равных берём самый крупный
+    // (чтобы не подхватить случайный readme.txt вместо самой книги).
+    async function parseZIPContainer(arrayBuffer) {
+        const zip = await JSZip.loadAsync(arrayBuffer);
+        const candidates = Object.values(zip.files)
+            .filter(f => !f.dir && !f.name.startsWith('__MACOSX/') && !f.name.split('/').pop().startsWith('.'))
+            .filter(f => /\.(fb2|txt)$/i.test(f.name));
+
+        if (!candidates.length) throw new Error('В архиве не нашлось файла .txt или .fb2.');
+
+        const fb2s = candidates.filter(f => /\.fb2$/i.test(f.name));
+        const pool = fb2s.length ? fb2s : candidates;
+
+        let best = null;
+        for (const f of pool) {
+            const text = await f.async('string');
+            if (!best || text.length > best.text.length) best = { file: f, text };
+        }
+
+        const format = /\.fb2$/i.test(best.file.name) ? 'fb2' : 'txt';
+        const chapters = format === 'fb2' ? parseFB2(best.text) : parseTXT(best.text);
+        return { chapters, format };
+    }
+
+    // EPUB: сам по себе .zip с XHTML-файлами внутри + манифест content.opf,
+    // который задаёт порядок чтения (<spine>). Здесь мы не строим отдельную
+    // логику разбиения на главы (как для .txt) — просто идём по spine файл за
+    // файлом в заданном порядке, и каждый файл естественно становится "главой"
+    // (заголовок берём из первого h1/h2/h3 внутри файла, если он есть).
+    async function parseEPUB(arrayBuffer) {
+        const zip = await JSZip.loadAsync(arrayBuffer);
+
+        const containerFile = zip.file('META-INF/container.xml');
+        if (!containerFile) throw new Error('Не найден META-INF/container.xml — это точно EPUB?');
+        const containerXml = await containerFile.async('string');
+        const containerDoc = new DOMParser().parseFromString(containerXml, 'application/xml');
+        const rootfilePath = containerDoc.querySelector('rootfile')?.getAttribute('full-path');
+        if (!rootfilePath) throw new Error('Не удалось найти content.opf внутри EPUB.');
+
+        const opfFile = zip.file(rootfilePath);
+        if (!opfFile) throw new Error(`Файл ${rootfilePath} не найден внутри EPUB.`);
+        const opfXml = await opfFile.async('string');
+        const opfDoc = new DOMParser().parseFromString(opfXml, 'application/xml');
+        const opfDir = rootfilePath.includes('/') ? rootfilePath.slice(0, rootfilePath.lastIndexOf('/') + 1) : '';
+
+        const manifest = {};
+        opfDoc.querySelectorAll('manifest > item').forEach(item => {
+            manifest[item.getAttribute('id')] = item.getAttribute('href');
+        });
+
+        const spineIds = [...opfDoc.querySelectorAll('spine > itemref')].map(el => el.getAttribute('idref'));
+        if (!spineIds.length) throw new Error('В content.opf не найден <spine> — порядок глав неизвестен.');
+
+        function resolvePath(href) {
+            const parts = (opfDir + href).split('/');
+            const resolved = [];
+            for (const part of parts) {
+                if (part === '..') resolved.pop();
+                else if (part !== '.' && part !== '') resolved.push(part);
+            }
+            return resolved.join('/');
+        }
+
+        const chapters = [];
+        for (const id of spineIds) {
+            const href = manifest[id];
+            if (!href) continue;
+            const path = resolvePath(href);
+            const docFile = zip.file(path) || zip.file(decodeURIComponent(path));
+            if (!docFile) continue;
+
+            const raw = await docFile.async('string');
+            let dom = new DOMParser().parseFromString(raw, 'application/xhtml+xml');
+            if (dom.querySelector('parsererror')) dom = new DOMParser().parseFromString(raw, 'text/html');
+            const body = dom.querySelector('body');
+            if (!body) continue;
+
+            const heading = body.querySelector('h1, h2, h3');
+            const title = heading ? heading.textContent.trim().replace(/\s+/g, ' ') : '';
+
+            let paragraphs = [...body.querySelectorAll('p')]
+                .map(p => p.textContent.trim().replace(/\s+/g, ' '))
+                .filter(Boolean);
+            if (!paragraphs.length) {
+                paragraphs = body.textContent.split(/\n\s*\n/).map(s => s.trim().replace(/\s+/g, ' ')).filter(Boolean);
+            }
+            if (paragraphs.length) chapters.push({ title, paragraphs });
+        }
+
+        if (!chapters.length) throw new Error('Не удалось извлечь текст ни из одного файла EPUB.');
+        return chapters;
+    }
+
+    // PDF: подключаем pdf.js только когда реально понадобился (динамический
+    // import — чтобы не грузить полтора мегабайта библиотеки тем, кто PDF
+    // не открывает). Файл — не текстовый формат, а набор нарисованных
+    // символов с координатами, поэтому абзацы и главы приходится
+    // реконструировать эвристикой: строки группируем по Y-координате,
+    // а разрыв абзаца ловим по увеличенному межстрочному промежутку.
+    // Дальше просто скармливаем получившийся текст в parseTXT — там уже
+    // есть лёгкое разбиение на главы по "Глава/Chapter/Part", не дублируем.
+    let pdfjsLoadPromise = null;
+    function loadPdfJs() {
+        if (!pdfjsLoadPromise) {
+            pdfjsLoadPromise = import('./pdf.min.mjs').then((lib) => {
+                lib.GlobalWorkerOptions.workerSrc = './pdf.worker.min.mjs';
+                return lib;
+            });
+        }
+        return pdfjsLoadPromise;
+    }
+
+    async function parsePDF(arrayBuffer) {
+        const pdfjsLib = await loadPdfJs();
+        const doc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+        // Допуск, в пределах которого разные Y всё ещё считаются одной и той же
+        // визуальной строкой. Раньше группировали жёстким Math.round(y) — и
+        // если у пары символов внутри ОДНОЙ строки Y отличался на доли пункта
+        // (кернинг, особенности метрик отдельных букв — обычное дело для PDF),
+        // округление раскидывало их по двум соседним "строкам". А раз разные
+        // строки склеиваются через пробел — ровно посреди слова возникал
+        // лишний пробел ("nonimmune" → "noni" + "mmune"). Кластеризация с
+        // допуском вместо точного совпадения решает это системно.
+        const LINE_Y_TOLERANCE = 2;
+
+        function clusterLines(items) {
+            const enriched = items.map(it => ({ item: it, y: it.transform[5], x: it.transform[4] }));
+            enriched.sort((a, b) => b.y - a.y); // сверху вниз
+            const lines = [];
+            for (const entry of enriched) {
+                let line = lines.find(l => Math.abs(l.y - entry.y) <= LINE_Y_TOLERANCE);
+                if (!line) { line = { y: entry.y, items: [] }; lines.push(line); }
+                line.items.push(entry);
+            }
+            lines.sort((a, b) => b.y - a.y);
+            for (const line of lines) line.items.sort((a, b) => a.x - b.x);
+            return lines;
+        }
+
+        let fullText = '';
+        for (let pageNum = 1; pageNum <= doc.numPages; pageNum++) {
+            const page = await doc.getPage(pageNum);
+            const content = await page.getTextContent();
+            if (!content.items.length) continue;
+
+            const lines = clusterLines(content.items);
+
+            let prevY = null;
+            let lineHeights = [];
+            for (const line of lines) {
+                if (prevY !== null) lineHeights.push(prevY - line.y);
+                prevY = line.y;
+            }
+            const medianGap = lineHeights.length
+                ? lineHeights.slice().sort((a, b) => a - b)[Math.floor(lineHeights.length / 2)]
+                : 14;
+
+            let pageText = '';
+            prevY = null;
+            for (const line of lines) {
+                const lineText = line.items
+                    .map(e => e.item.str)
+                    .join('')
+                    .replace(/\s+/g, ' ')
+                    .trim();
+                if (!lineText) continue;
+
+                // Разрыв абзаца: промежуток заметно больше обычного межстрочного
+                const isParaBreak = prevY !== null && (prevY - line.y) > medianGap * 1.45;
+                pageText += (isParaBreak ? '\n\n' : (pageText ? ' ' : '')) + lineText;
+                prevY = line.y;
+            }
+            fullText += pageText + '\n\n';
+        }
+
+        const chapters = parseTXT(repairPdfHyphenSpaces(fullText));
+        return chapters;
+    }
+
+    // Некоторые PDF (особенно низкокачественные автоконвертации, как эта —
+    // с readli.net) заставляют pdf.js отдавать дефис в составном слове как
+    // ПРОБЕЛ, сдвинутый на одну букву: "non-immune" → "noni mmune",
+    // "micro-life" → "microl ife". Это не наша склейка строк — pdf.js уже
+    // отдаёт такую строку одним куском, без информации о координатах внутри
+    // неё, так что отличить "настоящий" пробел от "бывшего дефиса"
+    // универсально нельзя (для этого нужен был бы словарь языка). Ловим
+    // только самые частые приставки — низкий риск ложных срабатываний, но и
+    // не покрывает все случаи (например, случайные составные вроде
+    // "ice-buried" эта эвристика не поймает — тут нужен был бы словарь).
+    const HYPHEN_PREFIX_PATTERN = new RegExp(
+        '\\b(non|micro|macro|multi|anti|semi|pre|post|sub|super|inter|intra|trans|' +
+        'extra|hyper|hypo|mono|neo|over|poly|pseudo|ultra|under|disease|self|co)' +
+        '([a-z])[ \\u00A0]([a-z]{2,}\\b)',
+        'g'
+    );
+    function repairPdfHyphenSpaces(text) {
+        return text.replace(HYPHEN_PREFIX_PATTERN, '$1-$2$3');
+    }
+
+    // HTML: одиночный файл, тот же принцип, что и для глав EPUB — ищем
+    // заголовки h1-h4 (каждый начинает новую "главу") и абзацы <p>.
+    // Если <p> в файле вовсе нет (текст просто лежит внутри <body> без
+    // разметки) — переиспользуем parseTXT на textContent, как есть.
+    function parseHTMLDoc(text) {
+        const dom = new DOMParser().parseFromString(text, 'text/html');
+        const body = dom.body;
+        if (!body) throw new Error('Не удалось разобрать HTML — не найден <body>.');
+
+        const chapters = [];
+        let current = { title: '', paragraphs: [] };
+        const walker = document.createTreeWalker(body, NodeFilter.SHOW_ELEMENT);
+        let node = walker.currentNode;
+        while (node) {
+            const tag = node.tagName ? node.tagName.toLowerCase() : '';
+            if (/^h[1-4]$/.test(tag)) {
+                const t = node.textContent.trim().replace(/\s+/g, ' ');
+                if (t) {
+                    if (current.paragraphs.length) chapters.push(current);
+                    current = { title: t, paragraphs: [] };
+                }
+            } else if (tag === 'p') {
+                const t = node.textContent.trim().replace(/\s+/g, ' ');
+                if (t) current.paragraphs.push(t);
+            }
+            node = walker.nextNode();
+        }
+        if (current.paragraphs.length) chapters.push(current);
+
+        if (!chapters.length) return parseTXT(body.textContent);
+        return chapters;
+    }
+
+    // DOCX: тоже ZIP (word/document.xml), поэтому библиотека уже есть — тот
+    // же JSZip, что и для .zip/.epub, без новых зависимостей. Абзацы — это
+    // <w:p>, текст внутри — конкатенация всех <w:t>, заголовок — если у
+    // абзаца стиль Heading1/Heading2/... (стандартные стили Word).
+    async function parseDOCX(arrayBuffer) {
+        const zip = await JSZip.loadAsync(arrayBuffer);
+        const docFile = zip.file('word/document.xml');
+        if (!docFile) throw new Error('Не найден word/document.xml — это точно .docx?');
+        const xml = await docFile.async('string');
+        const doc = new DOMParser().parseFromString(xml, 'application/xml');
+        if (doc.querySelector('parsererror')) throw new Error('Не удалось разобрать .docx (повреждённый XML).');
+
+        const paragraphNodes = [...doc.getElementsByTagName('w:p')];
+        if (!paragraphNodes.length) throw new Error('В документе не нашлось ни одного абзаца.');
+
+        const chapters = [];
+        let current = { title: '', paragraphs: [] };
+        for (const p of paragraphNodes) {
+            const styleEl = p.getElementsByTagName('w:pStyle')[0];
+            const styleVal = styleEl ? styleEl.getAttribute('w:val') : null;
+            const isHeading = styleVal && /^Heading/i.test(styleVal);
+
+            const text = [...p.getElementsByTagName('w:t')]
+                .map(t => t.textContent)
+                .join('')
+                .trim()
+                .replace(/\s+/g, ' ');
+            if (!text) continue;
+
+            if (isHeading) {
+                if (current.paragraphs.length) chapters.push(current);
+                current = { title: text, paragraphs: [] };
+            } else {
+                current.paragraphs.push(text);
+            }
+        }
+        if (current.paragraphs.length) chapters.push(current);
+        if (!chapters.length) throw new Error('В .docx не нашлось текстовых абзацев.');
+        return chapters;
+    }
+
+    function detectFormat(filename) {
+        const ext = filename.toLowerCase().split('.').pop();
+        if (ext === 'fb2') return 'fb2';
+        if (ext === 'txt') return 'txt';
+        if (ext === 'zip') return 'zip';
+        if (ext === 'epub') return 'epub';
+        if (ext === 'pdf') return 'pdf';
+        if (ext === 'html' || ext === 'htm') return 'html';
+        if (ext === 'docx') return 'docx';
+        return null;
+    }
+
+    async function parseFile(file) {
+        const format = detectFormat(file.name);
+        if (!format) throw new Error('Поддерживаются форматы: .txt, .fb2, .epub, .pdf, .html, .docx, .zip (с .txt/.fb2 внутри)');
+
+        let chapters, actualFormat = format;
+        if (format === 'zip') {
+            const result = await parseZIPContainer(await file.arrayBuffer());
+            chapters = result.chapters;
+            actualFormat = result.format;
+        } else if (format === 'epub') {
+            chapters = await parseEPUB(await file.arrayBuffer());
+        } else if (format === 'pdf') {
+            chapters = await parsePDF(await file.arrayBuffer());
+        } else if (format === 'html') {
+            chapters = parseHTMLDoc(await file.text());
+        } else if (format === 'docx') {
+            chapters = await parseDOCX(await file.arrayBuffer());
+        } else {
+            const text = await file.text();
+            chapters = format === 'fb2' ? parseFB2(text) : parseTXT(text);
+        }
+
+        const paragraphCount = chapters.reduce((sum, c) => sum + c.paragraphs.length, 0);
+        return { chapters, paragraphCount, format: actualFormat, filename: file.name };
+    }
+
+    // ============================================================
+    // СОСТОЯНИЕ СЛОТОВ A/B + SWAP
+    // ============================================================
+    const slots = {
+        A: { file: null, parsed: null, error: null },
+        B: { file: null, parsed: null, error: null },
+    };
+
+    function renderSlot(slot) {
+        const s = slots[slot];
+        const zone = $('zone' + slot);
+        const filenameEl = $('filename' + slot);
+        const errorEl = $('error' + slot);
+
+        if (s.file) {
+            filenameEl.textContent = s.file.name + (s.parsed ? ` — ${s.parsed.paragraphCount} абзацев, ${s.parsed.chapters.length} гл.` : '');
+            filenameEl.classList.add('has-file');
+            zone.classList.add('filled');
+        } else {
+            filenameEl.textContent = 'Файл не выбран';
+            filenameEl.classList.remove('has-file');
+            zone.classList.remove('filled');
+        }
+        errorEl.textContent = s.error || '';
+    }
+
+    async function handleFile(slot, file) {
+        const s = slots[slot];
+        s.file = file; s.parsed = null; s.error = null;
+        renderSlot(slot);
+        try {
+            s.parsed = await parseFile(file);
+        } catch (err) {
+            s.error = err.message;
+        }
+        renderSlot(slot);
+        updateCtaButtons();
+    }
+
+    let wasBothReady = false;
+    function updateCtaButtons() {
+        const aReady = !!(slots.A.file && slots.A.parsed && !slots.A.error);
+        const bReady = !!(slots.B.file && slots.B.parsed && !slots.B.error);
+        $('readBtn').disabled = !aReady;
+        $('linkBtn').disabled = !(aReady && bReady);
+
+        const bothReady = aReady && bReady;
+        const swapRow = document.querySelector('.swap-row');
+        swapRow.classList.toggle('connected', bothReady);
+        if (bothReady && !wasBothReady) {
+            swapRow.classList.remove('pulse');
+            void swapRow.offsetWidth; // форсируем reflow, чтобы анимация проигралась заново
+            swapRow.classList.add('pulse');
+        }
+        wasBothReady = bothReady;
+    }
+
+    ['A', 'B'].forEach(slot => {
+        const zone = $('zone' + slot);
+        const input = $('file' + slot);
+        zone.addEventListener('click', () => input.click());
+        zone.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.click(); } });
+        input.addEventListener('change', () => { if (input.files[0]) handleFile(slot, input.files[0]); });
+        ['dragenter', 'dragover'].forEach(evt => zone.addEventListener(evt, (e) => { e.preventDefault(); e.stopPropagation(); zone.classList.add('dragover'); }));
+        ['dragleave', 'drop'].forEach(evt => zone.addEventListener(evt, (e) => { e.preventDefault(); e.stopPropagation(); zone.classList.remove('dragover'); }));
+        zone.addEventListener('drop', (e) => { const file = e.dataTransfer.files[0]; if (file) handleFile(slot, file); });
+    });
+
+    $('swapBtn').addEventListener('click', function () {
+        const tmp = slots.A; slots.A = slots.B; slots.B = tmp;
+        renderSlot('A'); renderSlot('B'); updateCtaButtons();
+        this.classList.remove('spin'); void this.offsetWidth; this.classList.add('spin');
+    });
+
+    renderSlot('A'); renderSlot('B');
+
+    // ============================================================
+    // ВХОД В ЧИТАЛКУ
+    // ============================================================
+    const READER = {
+        apiKey: safeStorage.getItem('link_apiKey') || '',
+        bookKey: '',
+        bookTitle: '',
+        hasOriginal: false,
+        originalChapters: null,    // [{title, paragraphs}] или null
+        bookmarks: [],
+        summaryHistory: [],
+        furthestScrollBottom: 0,
+    };
+    let ALL_PARAGRAPHS = [];
+
+    // Ключ книги строим по СОДЕРЖИМОМУ (текст всех абзацев), а не по имени
+    // файла — иначе один и тот же файл, загруженный напрямую и, скажем, внутри
+    // .zip/.epub, даёт разные ключи и дублируется на полке. Хэш дешёвый
+    // (один проход по символам, без склейки в одну гигантскую строку), плюс
+    // общее число символов — как доп. проверка от случайных коллизий.
+    // Хэш по содержимому, а не по имени файла (см. комментарий выше об этом).
+    // Важный нюанс: между абзацами всегда вставляем РОВНО один пробел и
+    // схлопываем внутренние пробелы/переносы — иначе PDF (и вообще любой
+    // формат, где абзацы определяются эвристикой) может при повторном разборе
+    // того же файла разбить текст на чуть другое число абзацев (пограничный
+    // случай эвристики), из-за чего теряется/добавляется один пробел на стыке
+    // — хэш меняется целиком, и книга дублируется на полке, хотя текст тот же.
+    function bookFingerprint(parsed) {
+        let hash = 0;
+        let totalChars = 0;
+        for (const ch of parsed.chapters) {
+            for (const p of ch.paragraphs) {
+                const norm = p.replace(/\s+/g, ' ').trim();
+                if (!norm) continue;
+                const chunk = ' ' + norm;   // разделитель между "смысловыми кусками" всегда одинаковый
+                for (let i = 0; i < chunk.length; i++) hash = ((hash << 5) - hash + chunk.charCodeAt(i)) | 0;
+                totalChars += norm.length;
+            }
+        }
+        return 'book_' + Math.abs(hash) + '_' + totalChars;
+    }
+
+    function bookLoad(key) { return safeStorage.getItem(READER.bookKey + ':' + key); }
+    function bookSave(key, value) { safeStorage.setItem(READER.bookKey + ':' + key, value); }
+
+    // ============================================================
+    // «МОЯ ПОЛКА» — сами файлы книг хранятся в IndexedDB (localStorage
+    // для этого маловат), с мягким лимитом и вытеснением давно не открытых
+    // ============================================================
+    const SHELF_DB_NAME = 'link_shelf';
+    const SHELF_DB_VERSION = 1;
+    const SHELF_STORE = 'books';
+    const SHELF_MAX_ENTRIES = 15;
+
+    function openShelfDB() {
+        return new Promise((resolve, reject) => {
+            if (!window.indexedDB) { reject(new Error('IndexedDB недоступен в этом браузере')); return; }
+            const req = indexedDB.open(SHELF_DB_NAME, SHELF_DB_VERSION);
+            req.onupgradeneeded = () => {
+                const db = req.result;
+                if (!db.objectStoreNames.contains(SHELF_STORE)) {
+                    db.createObjectStore(SHELF_STORE, { keyPath: 'bookKey' });
+                }
+            };
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+        });
+    }
+    async function shelfGetAll() {
+        try {
+            const db = await openShelfDB();
+            return await new Promise((resolve, reject) => {
+                const tx = db.transaction(SHELF_STORE, 'readonly');
+                const req = tx.objectStore(SHELF_STORE).getAll();
+                req.onsuccess = () => resolve(req.result || []);
+                req.onerror = () => reject(req.error);
+            });
+        } catch (e) { console.warn('Не удалось прочитать полку:', e.message); return []; }
+    }
+    async function shelfDelete(bookKey) {
+        try {
+            const db = await openShelfDB();
+            await new Promise((resolve, reject) => {
+                const tx = db.transaction(SHELF_STORE, 'readwrite');
+                tx.objectStore(SHELF_STORE).delete(bookKey);
+                tx.oncomplete = resolve;
+                tx.onerror = () => reject(tx.error);
+            });
+        } catch (e) { console.warn('Не удалось удалить книгу с полки:', e.message); }
+    }
+    async function shelfEnforceLimit() {
+        const all = await shelfGetAll();
+        if (all.length <= SHELF_MAX_ENTRIES) return;
+        all.sort((a, b) => a.lastOpened - b.lastOpened);
+        const toRemove = all.slice(0, all.length - SHELF_MAX_ENTRIES);
+        for (const entry of toRemove) await shelfDelete(entry.bookKey);
+    }
+    async function shelfPut(entry) {
+        try {
+            const db = await openShelfDB();
+            await new Promise((resolve, reject) => {
+                const tx = db.transaction(SHELF_STORE, 'readwrite');
+                tx.objectStore(SHELF_STORE).put(entry);
+                tx.oncomplete = resolve;
+                tx.onerror = () => reject(tx.error);
+            });
+            await shelfEnforceLimit();
+        } catch (e) { console.warn('Не удалось сохранить книгу на полку:', e.message); }
+    }
+
+    async function saveToShelf() {
+        if (!READER.bookKey || !slots.A.parsed || !slots.A.file) return;
+        const furthestIdx = getFurthestParagraphIndex();
+        const progressPercent = ALL_PARAGRAPHS.length
+            ? Math.max(0, Math.min(100, Math.round(((furthestIdx + 1) / ALL_PARAGRAPHS.length) * 100)))
+            : 0;
+        await shelfPut({
+            bookKey: READER.bookKey,
+            title: READER.bookTitle,
+            filenameA: slots.A.file.name,
+            formatA: slots.A.parsed.format,
+            chaptersA: slots.A.parsed.chapters,
+            filenameB: (READER.hasOriginal && slots.B.file) ? slots.B.file.name : null,
+            formatB: (READER.hasOriginal && slots.B.parsed) ? slots.B.parsed.format : null,
+            chaptersB: (READER.hasOriginal && slots.B.parsed) ? slots.B.parsed.chapters : null,
+            progressPercent,
+            lastOpened: Date.now(),
+        });
+        renderShelf();
+    }
+
+    function formatRelativeDate(ts) {
+        const diff = Date.now() - ts;
+        const day = 86400000;
+        if (diff < day) return 'сегодня';
+        if (diff < 2 * day) return 'вчера';
+        return new Date(ts).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+    }
+
+    async function renderShelf() {
+        const list = $('shelfList');
+        const books = await shelfGetAll();
+        books.sort((a, b) => b.lastOpened - a.lastOpened);
+
+        $('shelfLinkWrap').style.display = books.length ? '' : 'none';
+        $('shelfCount').textContent = books.length ? `(${books.length})` : '';
+
+        if (!books.length) { list.innerHTML = '<div class="empty-msg">Пока нет сохранённых книг</div>'; return; }
+
+        list.innerHTML = books.map(b => `
+            <div class="shelf-item" data-key="${escapeHtml(b.bookKey)}">
+                <div class="icon">${ {fb2:'📗', pdf:'📕', docx:'📘', html:'🌐'}[b.formatA] || '📄' }</div>
+                <div class="info">
+                    <div class="title">${escapeHtml(b.title)}</div>
+                    <div class="meta">${b.chaptersB ? 'с оригиналом · ' : ''}${formatRelativeDate(b.lastOpened)}</div>
+                    <div class="shelf-progress"><div class="fill" style="width:${b.progressPercent || 0}%"></div></div>
+                </div>
+                <div class="shelf-percent">${b.progressPercent || 0}%</div>
+                <button class="delete-btn" data-key="${escapeHtml(b.bookKey)}" title="Удалить">✕</button>
+            </div>
+        `).join('');
+
+        list.querySelectorAll('.shelf-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                if (e.target.closest('.delete-btn')) return;
+                openFromShelf(item.dataset.key, books);
+            });
+        });
+        list.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                await shelfDelete(btn.dataset.key);
+                renderShelf();
+            });
+        });
+    }
+
+    function openFromShelf(bookKey, books) {
+        const entry = books.find(b => b.bookKey === bookKey);
+        if (!entry) return;
+        slots.A = {
+            file: { name: entry.filenameA },
+            parsed: {
+                chapters: entry.chaptersA, format: entry.formatA, filename: entry.filenameA,
+                paragraphCount: entry.chaptersA.reduce((s, c) => s + c.paragraphs.length, 0)
+            },
+            error: null
+        };
+        slots.B = entry.chaptersB ? {
+            file: { name: entry.filenameB },
+            parsed: {
+                chapters: entry.chaptersB, format: entry.formatB, filename: entry.filenameB,
+                paragraphCount: entry.chaptersB.reduce((s, c) => s + c.paragraphs.length, 0)
+            },
+            error: null
+        } : { file: null, parsed: null, error: null };
+        closeShelfPanel();
+        enterReader(entry.chaptersB ? 'link' : 'read');
+    }
+
+    function openShelfPanel() { renderShelf(); $('shelfPanel').classList.add('open'); }
+    function closeShelfPanel() { $('shelfPanel').classList.remove('open'); }
+    $('shelfOpenBtn').addEventListener('click', openShelfPanel);
+    $('shelfClose').addEventListener('click', closeShelfPanel);
+    renderShelf(); // первичная отрисовка кнопки/счётчика при загрузке страницы
+
+    function renderBook(parsedA) {
+        const container = $('bookContent');
+        let html = '';
+        let idx = 0;
+        parsedA.chapters.forEach(ch => {
+            if (ch.title) html += `<h2 class="chapter-title">${escapeHtml(ch.title)}</h2>`;
+            ch.paragraphs.forEach(text => {
+                html += `<p id="p-${idx}">${escapeHtml(text)}</p>`;
+                idx++;
+            });
+        });
+        container.innerHTML = html;
+    }
+
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    function enterReader(mode) {
+        const parsedA = slots.A.parsed;
+        if (!parsedA) return;
+
+        READER.bookKey = bookFingerprint(parsedA);
+        READER.bookTitle = slots.A.file.name.replace(/\.(txt|fb2|epub|pdf|docx|html?|zip)$/i, '');
+        READER.hasOriginal = mode === 'link' && !!slots.B.parsed;
+        READER.originalChapters = READER.hasOriginal ? slots.B.parsed.chapters : null;
+
+        // Восстанавливаем состояние именно ЭТОЙ книги
+        READER.bookmarks = JSON.parse(bookLoad('bookmarks') || '[]');
+        READER.summaryHistory = JSON.parse(bookLoad('summaryHistory') || '[]');
+        READER.furthestScrollBottom = parseInt(bookLoad('furthestScrollBottom')) || 0;
+        READER.lastScrollTop = parseInt(bookLoad('lastScrollTop')) || 0;
+
+        renderBook(parsedA);
+        ALL_PARAGRAPHS = Array.from(document.querySelectorAll('#bookContent p[id^="p-"]'));
+        renderBookmarks();
+        applyFontSize();
+
+        // Кнопка "Оригинал" в тулбаре выделения доступна только если файл B загружен и выбран LINK
+        $('selectionOriginalBtn').style.display = READER.hasOriginal ? 'flex' : 'none';
+
+        document.getElementById('uploadScreen').style.display = 'none';
+        document.getElementById('readerView').classList.add('active');
+
+        // Переносим кнопку темы в верхнюю панель читалки — иначе она,
+        // будучи зафиксирована в углу экрана, перекрывает кнопку оглавления
+        $('themeToggle').classList.add('in-topbar');
+        $('readerTopbar').insertBefore($('themeToggle'), $('tocToggle'));
+        $('helpBtn').style.display = 'none';
+
+        setPanelsHidden(false);
+
+        // Открытие книги должно продолжать чтение с места, докуда дочитали,
+        // а не с начала — восстанавливаем ПОСЛЕДНЮЮ позицию скролла
+        // (lastScrollTop), а не самую дальнюю когда-либо достигнутую
+        // (furthestScrollBottom нужна только для % на полке — если
+        // пролистать вперёд для проверки, а потом вернуться назад
+        // перечитать, "дальняя точка" перестаёт быть тем местом, где
+        // на самом деле остановились).
+        window.scrollTo(0, READER.lastScrollTop);
+        lastScrollY = READER.lastScrollTop;
+        updateProgress();
+        saveToShelf();
+    }
+
+    $('readBtn').addEventListener('click', () => enterReader('read'));
+    $('linkBtn').addEventListener('click', () => enterReader('link'));
+    $('backBtn').addEventListener('click', () => {
+        bookSave('lastScrollTop', Math.round(window.scrollY));
+        saveToShelf();
+        document.getElementById('readerView').classList.remove('active');
+        document.getElementById('uploadScreen').style.display = '';
+        // Возвращаем кнопку темы в её обычный плавающий угол на экране загрузки
+        $('themeToggle').classList.remove('in-topbar');
+        document.body.insertBefore($('themeToggle'), document.body.firstChild);
+        $('helpBtn').style.display = '';
+        window.scrollTo(0, 0);
+    });
+    // На случай закрытия вкладки без нажатия "Назад"
+    window.addEventListener('pagehide', () => {
+        if ($('readerView').classList.contains('active')) {
+            bookSave('lastScrollTop', Math.round(window.scrollY));
+            saveToShelf();
+        }
+    });
+
+    // ============================================================
+    // ПРОГРЕСС / ГЛАВЫ
+    // ============================================================
+    let lastScrollTopSaveTimer = null;
+    function updateProgress() {
+        const scrollTop = window.scrollY;
+        const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+        const percent = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+        $('progressBar').style.width = Math.min(100, Math.max(0, percent)) + '%';
+        updateChapterIndicator(scrollTop);
+        const bottom = scrollTop + window.innerHeight;
+        if (bottom > READER.furthestScrollBottom) {
+            READER.furthestScrollBottom = bottom;
+            bookSave('furthestScrollBottom', Math.round(bottom));
+        }
+        // Последнюю позицию скролла пишем не на каждое событие (их сотни при
+        // одной прокрутке), а с задержкой — раз скролл остановился на ~400мс.
+        // На всякий случай (закрытие вкладки посреди инерционного скролла)
+        // есть ещё немедленная запись в backBtn/pagehide выше.
+        clearTimeout(lastScrollTopSaveTimer);
+        lastScrollTopSaveTimer = setTimeout(() => bookSave('lastScrollTop', Math.round(scrollTop)), 400);
+        updatePanelVisibility(scrollTop);
+    }
+    function updateChapterIndicator(scrollTop) {
+        const chapters = document.querySelectorAll('.chapter-title');
+        const indicator = $('chapterIndicator');
+        if (!chapters.length) { indicator.textContent = READER.bookTitle; return; }
+        let current = READER.bookTitle;
+        for (const ch of chapters) {
+            if (ch.offsetTop - 120 <= scrollTop) current = ch.textContent.trim();
+        }
+        indicator.textContent = current;
+    }
+
+    // ===== Авто-скрытие верхней/нижней панели при скролле вниз =====
+    let lastScrollY = 0;
+    let panelsHidden = false;
+    let suppressAutoPanels = false;   // true во время скролла кнопками ▲▼ — чтобы они не дёргали панели
+    let suppressAutoPanelsTimer = null;
+    const HIDE_THRESHOLD = 8;     // минимальное движение, чтобы не дёргалось от дрожания пальца
+    const TOP_SAFE_ZONE = 40;     // у самого верха панели всегда показаны
+
+    function setPanelsHidden(hidden) {
+        panelsHidden = hidden;
+        $('readerTopbar').classList.toggle('hidden', hidden);
+        $('progressTrack').classList.toggle('hidden', hidden);
+        $('bottomPanel').classList.toggle('hidden', hidden);
+        $('panelRestoreBtn').classList.toggle('show', hidden);
+        $('scrollUpBtn').classList.toggle('show', hidden);
+        $('scrollDownBtn').classList.toggle('show', hidden);
+    }
+
+    function updatePanelVisibility(scrollTop) {
+        if (suppressAutoPanels) { lastScrollY = scrollTop; return; }
+        const delta = scrollTop - lastScrollY;
+        if (scrollTop <= TOP_SAFE_ZONE) {
+            if (panelsHidden) setPanelsHidden(false);
+        } else if (delta > HIDE_THRESHOLD && !panelsHidden) {
+            setPanelsHidden(true);
+        } else if (delta < -HIDE_THRESHOLD && panelsHidden) {
+            setPanelsHidden(false);
+        }
+        lastScrollY = scrollTop;
+    }
+
+    $('panelRestoreBtn').addEventListener('click', () => setPanelsHidden(false));
+
+    // ДВА ПАРАМЕТРА: сколько строк текста пролистывается за одно нажатие
+    // ▼ и ▲ отдельно. Строка меряется по фактической высоте строки текста
+    // (line-height), так что при увеличенном размере шрифта шаг остаётся
+    // соразмерным, а не «уезжает» на другое количество текста.
+    // Вверх — треть от вниз (тонкая подстройка позиции, а не перелистывание страницы).
+    const SCROLL_LINES_DOWN = 12;
+    const SCROLL_LINES_UP = Math.round(SCROLL_LINES_DOWN / 3);
+
+    function scrollByLines(direction) {
+        const bookContent = $('bookContent');
+        const lineHeight = bookContent ? parseFloat(getComputedStyle(bookContent).lineHeight) : 28;
+        const lines = direction < 0 ? SCROLL_LINES_UP : SCROLL_LINES_DOWN;
+        // Подавляем авто-показ/скрытие панелей на время анимации скролла (~500мс —
+        // с запасом больше, чем обычно длится smooth-скролл на такое расстояние),
+        // иначе прокрутка вверх кнопкой ▲ трактуется как "палец провёл вверх" и
+        // возвращает панели, которые пользователь как раз скрыл.
+        suppressAutoPanels = true;
+        clearTimeout(suppressAutoPanelsTimer);
+        suppressAutoPanelsTimer = setTimeout(() => { suppressAutoPanels = false; }, 500);
+        window.scrollBy({ top: lineHeight * lines * direction, behavior: 'smooth' });
+    }
+    $('scrollUpBtn').addEventListener('click', () => scrollByLines(-1));
+    $('scrollDownBtn').addEventListener('click', () => scrollByLines(1));
+
+    window.addEventListener('scroll', updateProgress);
+    window.addEventListener('resize', updateProgress);
+
+    function getVisibleParagraph() {
+        let best = null, bestDist = Infinity;
+        for (const p of ALL_PARAGRAPHS) {
+            const rect = p.getBoundingClientRect();
+            if (rect.top < window.innerHeight / 2 && rect.bottom > 0) {
+                const dist = Math.abs(rect.top - window.innerHeight / 2);
+                if (dist < bestDist) { bestDist = dist; best = p; }
+            }
+        }
+        return best || ALL_PARAGRAPHS[0];
+    }
+    function getChapterForId(id) {
+        const p = document.getElementById(id);
+        if (!p) return READER.bookTitle;
+        let el = p.previousElementSibling;
+        while (el && !el.classList.contains('chapter-title')) el = el.previousElementSibling;
+        return el ? el.textContent.trim() : READER.bookTitle;
+    }
+    function getTextPreview(id) {
+        const p = document.getElementById(id);
+        return p ? p.textContent.trim().slice(0, 80) + '…' : '';
+    }
+
+    // ============================================================
+    // ЗАКЛАДКИ
+    // ============================================================
+    function renderBookmarks() {
+        const list = $('bookmarksList');
+        if (READER.bookmarks.length === 0) { list.innerHTML = '<div class="empty-msg">Нет закладок</div>'; return; }
+        list.innerHTML = READER.bookmarks.map((b, i) => `
+            <div class="bookmark-item" data-index="${i}">
+                <div class="info" data-id="${b.id}">
+                    <div class="chapter">${escapeHtml(b.chapter)}</div>
+                    <div class="preview">${escapeHtml(b.preview)}</div>
+                </div>
+                <button class="delete-btn" data-index="${i}">✕</button>
+            </div>
+        `).join('');
+        list.querySelectorAll('.info').forEach(elm => {
+            elm.addEventListener('click', () => {
+                const target = document.getElementById(elm.dataset.id);
+                if (target) { target.scrollIntoView({ behavior: 'smooth', block: 'center' }); closeBookmarksPanel(); }
+            });
+        });
+        list.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                READER.bookmarks.splice(parseInt(btn.dataset.index), 1);
+                bookSave('bookmarks', JSON.stringify(READER.bookmarks));
+                renderBookmarks();
+            });
+        });
+    }
+
+    function toggleBookmark(paragraphId) {
+        const p = paragraphId ? document.getElementById(paragraphId) : getVisibleParagraph();
+        if (!p) return;
+        const id = p.id;
+        const idx = READER.bookmarks.findIndex(b => b.id === id);
+        if (idx >= 0) READER.bookmarks.splice(idx, 1);
+        else READER.bookmarks.push({ id, chapter: getChapterForId(id), preview: getTextPreview(id), timestamp: Date.now() });
+        bookSave('bookmarks', JSON.stringify(READER.bookmarks));
+        renderBookmarks();
+    }
+
+    function openBookmarksPanel() { $('bookmarksPanel').classList.add('open'); renderBookmarks(); }
+    function closeBookmarksPanel() { $('bookmarksPanel').classList.remove('open'); }
+    $('bookmarkToggle').addEventListener('click', () => toggleBookmark());
+    $('bookmarksPanelToggle').addEventListener('click', () => {
+        $('bookmarksPanel').classList.contains('open') ? closeBookmarksPanel() : openBookmarksPanel();
+    });
+    $('bookmarksClose').addEventListener('click', closeBookmarksPanel);
+
+    // ============================================================
+    // ОГЛАВЛЕНИЕ
+    // ============================================================
+    function renderTOC() {
+        const list = $('tocList');
+        const chapters = document.querySelectorAll('.chapter-title');
+        if (!chapters.length) { list.innerHTML = '<div class="empty-msg">Глав не найдено</div>'; return; }
+        list.innerHTML = Array.from(chapters).map((ch, i) => `
+            <div class="toc-item" data-index="${i}">
+                <span class="num">${i + 1}</span>
+                <span class="title">${escapeHtml(ch.textContent.trim() || ('Часть ' + (i + 1)))}</span>
+            </div>
+        `).join('');
+        list.querySelectorAll('.toc-item').forEach((item, i) => {
+            item.addEventListener('click', () => {
+                chapters[i].scrollIntoView({ behavior: 'smooth', block: 'start' });
+                closeTOC();
+            });
+        });
+    }
+    function openTOC() { renderTOC(); $('tocPanel').classList.add('open'); $('tocOverlay').classList.add('open'); }
+    function closeTOC() { $('tocPanel').classList.remove('open'); $('tocOverlay').classList.remove('open'); }
+    $('tocToggle').addEventListener('click', openTOC);
+    $('tocClose').addEventListener('click', closeTOC);
+    $('tocOverlay').addEventListener('click', closeTOC);
+
+    // ============================================================
+    // МОДАЛКА
+    // ============================================================
+    const modalOverlay = $('modalOverlay');
+    function openModal(title, content) {
+        $('modalTitle').textContent = title;
+        $('modalBody').innerHTML = content;
+        modalOverlay.classList.add('open');
+    }
+    function closeModal() { modalOverlay.classList.remove('open'); }
+    $('modalClose').addEventListener('click', closeModal);
+    modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(); });
+
+    $('helpBtn').addEventListener('click', () => {
+        openModal('Как это работает', `
+            <p style="margin-bottom:1rem;"><strong>1. Загрузите текст.</strong> Файл для чтения — обязателен, оригинал — по желанию. Форматы: .txt, .fb2, .epub, .pdf, .docx, .html, а также .zip с .txt или .fb2 внутри.</p>
+            <p style="margin-bottom:1rem;"><strong>«Читать»</strong> — открывает книгу без оригинала. <strong>LINK</strong> — открывает с оригиналом, добавляя сравнение отрывков.</p>
+            <p style="margin-bottom:1rem;"><strong>В читалке:</strong> выделите слово или фразу — появятся «🌐 Перевод», «💬 Комментарий» (разбор отрывка) и «📄 Оригинал» (если файл оригинала загружен).</p>
+            <p style="margin-bottom:1rem;"><strong>Нижняя панель:</strong> размер шрифта, закладка на видимый абзац, список закладок, саммари прочитанного, чтение вслух, настройки.</p>
+            <p style="margin-bottom:1rem;"><strong>☰ вверху</strong> — оглавление книги. Панели прячутся при скролле — потяните вверх или нажмите кружок в углу, чтобы вернуть.</p>
+            <p><strong>API-ключ Groq</strong> нужен для ИИ-функций (саммари, комментарий, сравнение, перевод слова) — получить можно на <a href="https://console.groq.com" target="_blank" style="color:var(--accent);">console.groq.com</a>, вводится один раз в настройках.</p>
+        `);
+    });
+
+    // ============================================================
+    // TTS
+    // ============================================================
+    let ttsUtterance = null, ttsSpeaking = false;
+    function detectLang(text) {
+        const cyr = (text.match(/[а-яё]/gi) || []).length;
+        const lat = (text.match(/[a-z]/gi) || []).length;
+        return cyr >= lat ? 'ru-RU' : 'en-US';
+    }
+    function getVisibleText() {
+        let text = '';
+        for (const p of ALL_PARAGRAPHS) {
+            const rect = p.getBoundingClientRect();
+            if (rect.top < window.innerHeight && rect.bottom > 0) text += p.textContent.trim() + ' ';
+        }
+        return text.trim();
+    }
+    function toggleTTS() {
+        if (ttsSpeaking) {
+            window.speechSynthesis.cancel();
+            ttsSpeaking = false; $('ttsIndicator').classList.remove('on');
+            return;
+        }
+        const text = getVisibleText();
+        if (!text) { openModal('Чтение вслух', 'Нет видимого текста для чтения.'); return; }
+        if (!window.speechSynthesis) { openModal('Чтение вслух', 'Браузер не поддерживает голосовое чтение.'); return; }
+        ttsUtterance = new SpeechSynthesisUtterance(text);
+        ttsUtterance.lang = detectLang(text);
+        ttsUtterance.rate = 0.95;
+        const voices = window.speechSynthesis.getVoices();
+        const voice = voices.find(v => v.lang.startsWith(ttsUtterance.lang.slice(0, 2)));
+        if (voice) ttsUtterance.voice = voice;
+        ttsUtterance.onstart = () => { ttsSpeaking = true; $('ttsIndicator').classList.add('on'); };
+        ttsUtterance.onend = () => { ttsSpeaking = false; $('ttsIndicator').classList.remove('on'); };
+        ttsUtterance.onerror = () => { ttsSpeaking = false; $('ttsIndicator').classList.remove('on'); };
+        window.speechSynthesis.speak(ttsUtterance);
+    }
+    $('ttsBtn').addEventListener('click', toggleTTS);
+    if (window.speechSynthesis) {
+        window.speechSynthesis.getVoices();
+        window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+    }
+
+    // ============================================================
+    // НАСТРОЙКИ (API-ключ Groq)
+    // ============================================================
+    function promptForApiKey(onSaved) {
+        openModal('Настройки API', `
+            <p>Для работы ИИ-функций нужен API-ключ Groq.</p>
+            <p style="margin-top:.5rem;">Получите ключ на <a href="https://console.groq.com" target="_blank" style="color:var(--accent);">console.groq.com</a></p>
+            <div style="margin-top:1rem;">
+                <label>API-ключ:</label>
+                <input type="password" id="apiKeyInput" placeholder="gsk_..." value="${READER.apiKey || ''}">
+                <button class="btn-primary" id="apiKeySaveBtn">Сохранить</button>
+            </div>
+        `);
+        $('apiKeySaveBtn').addEventListener('click', () => {
+            const val = $('apiKeyInput').value.trim();
+            if (val) {
+                READER.apiKey = val;
+                safeStorage.setItem('link_apiKey', val);
+                closeModal();
+                if (onSaved) onSaved();
+            }
+        });
+    }
+    $('settingsBtn').addEventListener('click', () => promptForApiKey());
+
+    // ============================================================
+    // САММАРИ (инкрементально, по прогрессу чтения — как в предыдущей версии)
+    // ============================================================
+    // Для "Моей полки" прогресс должен отражать САМОЕ ДАЛЬНЕЕ место, до которого
+    // вообще когда-либо дочитали, а не текущую позицию (иначе процент "падал"
+    // бы при обычном перечитывании более ранних глав).
+    function getFurthestParagraphIndex() {
+        let idx = -1;
+        for (let i = 0; i < ALL_PARAGRAPHS.length; i++) {
+            if (ALL_PARAGRAPHS[i].offsetTop < READER.furthestScrollBottom) idx = i; else break;
+        }
+        return idx;
+    }
+    // Индекс абзаца по ТЕКУЩЕЙ позиции скролла — саммари отвечает на "что было
+    // до места, где я СЕЙЧАС", а не спойлерит тем, что видели раньше, но сейчас
+    // перечитываете сначала.
+    function getCurrentParagraphIndex() {
+        const bottom = window.scrollY + window.innerHeight;
+        let idx = -1;
+        for (let i = 0; i < ALL_PARAGRAPHS.length; i++) {
+            if (ALL_PARAGRAPHS[i].offsetTop < bottom) idx = i; else break;
+        }
+        return idx;
+    }
+    // Весь прочитанный текст от начала книги до текущего места. Для очень
+    // длинных книг (роман, а не рассказ) берём не первые попавшиеся символы,
+    // а начало (завязка, персонажи) + конец (то, что происходило только что) —
+    // иначе на 20-й главе саммари пересказывало бы только первую главу.
+    function getReadSoFarText(toIdx) {
+        const full = ALL_PARAGRAPHS.slice(0, toIdx + 1).map(p => p.textContent.trim()).join('\n').trim();
+        const LIMIT = 15000;
+        if (full.length <= LIMIT) return full;
+        const headSize = 3000;
+        const tailSize = LIMIT - headSize;
+        return full.slice(0, headSize) + '\n\n…(пропущена середина — книга длинная)…\n\n' + full.slice(-tailSize);
+    }
+    function renderSummaryModal(summaryText) {
+        openModal('📋 Саммари прочитанного', `
+            <div class="summary-text">${escapeHtml(summaryText)}</div>
+            <div style="margin-top:1rem;font-size:.75rem;opacity:.5;border-top:1px solid var(--border);padding-top:.5rem;">
+                Объём: ${summaryText.length} символов
+            </div>
+        `);
+    }
+
+    async function callGroqOnce(messages, maxTokens) {
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${READER.apiKey}` },
+            body: JSON.stringify({
+                model: 'openai/gpt-oss-120b',
+                messages,
+                temperature: 0.6,
+                max_tokens: maxTokens || 1500,
+                include_reasoning: false,
+                reasoning_effort: 'low', // нам не нужна глубина рассуждений — только это и снижает шанс "зависнуть в размышлениях"
+            })
+        });
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(err.error?.message || 'Ошибка API');
+        }
+        const data = await response.json();
+        return (data.choices[0].message.content || '').trim();
+    }
+
+    // openai/gpt-oss-120b на Groq — известный, подтверждённый на их собственном
+    // форуме баг: модель иногда "рассуждает" и не успевает выдать финальный
+    // текст, отвечая пустотой, независимо от include_reasoning. Груq API ещё
+    // и кэширует одинаковые промпты — значит, повтор ТОГО ЖЕ текста рискует
+    // получить тот же самый битый кэш повторно. Поэтому повтор идёт с лёгким
+    // "разбивателем кэша" — невидимой меткой в системном сообщении.
+    async function callGroq(messages, maxTokens) {
+        let content = await callGroqOnce(messages, maxTokens);
+        if (content) return content;
+
+        const bustedMessages = messages.map((m, i) =>
+            i === 0 ? { ...m, content: m.content + `\n\n(intent-id: ${Date.now()})` } : m
+        );
+        content = await callGroqOnce(bustedMessages, maxTokens);
+        if (content) return content;
+
+        throw new Error('Модель дважды подряд вернула пустой ответ — это известная особенность используемой модели у провайдера (Groq, gpt-oss-120b), не связанная с этим текстом. Попробуйте ещё раз чуть позже.');
+    }
+
+    // Лёгкое запоминание в памяти (не в хранилище) — чтобы повторный клик на
+    // том же самом месте без движения не дёргал API второй раз подряд впустую
+    let lastSummaryIndex = -2;
+    let lastSummaryText = '';
+
+    async function generateSummary() {
+        const currentIdx = getCurrentParagraphIndex();
+        if (currentIdx < 0) { openModal('Саммари', 'Прочитайте хотя бы несколько абзацев, чтобы сгенерировать саммари.'); return; }
+
+        if (currentIdx === lastSummaryIndex && lastSummaryText) {
+            renderSummaryModal(lastSummaryText);
+            return;
+        }
+
+        const text = getReadSoFarText(currentIdx);
+        if (text.length < 100) {
+            openModal('Саммари', 'Прочитайте хотя бы несколько абзацев, чтобы сгенерировать саммари.');
+            return;
+        }
+
+        if (!READER.apiKey) { promptForApiKey(generateSummary); return; }
+
+        openModal('Саммари', '<div class="loading"><div class="loading-spinner"></div>Генерация саммари... Это может занять 10–30 секунд.</div>');
+
+        try {
+            const coverage = (currentIdx + 1) / ALL_PARAGRAPHS.length;
+            const targetLength = Math.round(400 + coverage * 1100);
+            const bookLabel = READER.bookTitle ? `«${READER.bookTitle}»` : 'загруженного текста';
+
+            const prompt = `Ты — литературный критик. Напиши краткое, содержательное саммари прочитанной части текста ${bookLabel} на языке этого текста.
+
+Опиши ключевые события, атмосферу и главную интригу. Объём: примерно ${targetLength} символов.
+
+Текст для саммари:
+---
+${text}
+---
+
+Ответь только саммари, без комментариев.`;
+
+            const summary = await callGroq([
+                { role: 'system', content: 'Ты — внимательный литературный критик. Отвечай на языке предложенного текста.' },
+                { role: 'user', content: prompt }
+            ], 2000);
+
+            lastSummaryIndex = currentIdx;
+            lastSummaryText = summary;
+
+            READER.summaryHistory.push({ timestamp: Date.now(), summary });
+            if (READER.summaryHistory.length > 10) READER.summaryHistory.shift();
+            bookSave('summaryHistory', JSON.stringify(READER.summaryHistory));
+
+            renderSummaryModal(summary);
+        } catch (err) {
+            openModal('Саммари', `<div style="color:#ff6b6b;">❌ Ошибка: ${escapeHtml(err.message)}</div>`);
+        }
+    }
+    $('summaryBtn').addEventListener('click', generateSummary);
+
+    // ============================================================
+    // ТУЛБАР ВЫДЕЛЕНИЯ: «Оригинал» и «Комментарий»
+    // ============================================================
+    const selectionToolbar = $('selectionToolbar');
+    let selectionTimeout = null;
+
+    document.addEventListener('selectionchange', () => {
+        const container = $('bookContent');
+        if (!container || !$('readerView').classList.contains('active')) return;
+        const sel = window.getSelection();
+        const text = sel.toString().trim();
+        if (!sel.anchorNode || !container.contains(sel.anchorNode)) { selectionToolbar.classList.remove('open'); return; }
+
+        if (text && text.length > 3) {
+            selectionToolbar.classList.add('open');
+            clearTimeout(selectionTimeout);
+            selectionTimeout = setTimeout(() => { if (!sel.toString().trim()) selectionToolbar.classList.remove('open'); }, 4000);
+        } else {
+            selectionTimeout = setTimeout(() => { if (!window.getSelection().toString().trim()) selectionToolbar.classList.remove('open'); }, 400);
+        }
+    });
+
+    // --- «Комментарий»: контекстный разбор отрывка, без привязки ко второму файлу ---
+    $('selectionCommentBtn').addEventListener('click', async () => {
+        const sel = window.getSelection();
+        const selected = sel.toString().trim();
+        if (!selected) return;
+        if (!READER.apiKey) { promptForApiKey(); return; }
+
+        selectionToolbar.classList.remove('open');
+        openModal('Комментарий', '<div class="loading"><div class="loading-spinner"></div>Разбираю отрывок...</div>');
+
+        try {
+            const anchorEl = sel.anchorNode && sel.anchorNode.nodeType === 3 ? sel.anchorNode.parentElement : sel.anchorNode;
+            const para = anchorEl ? anchorEl.closest('p[id^="p-"]') : null;
+            const paraText = para ? para.textContent.trim() : selected;
+            const prevPara = para && para.previousElementSibling && para.previousElementSibling.tagName === 'P'
+                ? para.previousElementSibling.textContent.trim() : '';
+
+            const contextBlock = [
+                prevPara ? `Предыдущий абзац:\n${prevPara}` : '',
+                `Абзац с выделением:\n${paraText}`,
+                `Выделенный отрывок:\n"${selected}"`,
+            ].filter(Boolean).join('\n\n');
+
+            const prompt = `Ты — литературный комментатор. Ниже — контекст и конкретный выделенный читателем отрывок из текста.
+
+${contextBlock}
+
+Напиши короткий (3–6 предложений) комментарий именно к ВЫДЕЛЕННОМУ отрывку: что здесь примечательного — с точки зрения сюжета, тона, характера персонажа, иронии или контраста с происходящим ранее. Если не уверен в конкретных исторических или биографических фактах — не выдумывай их, сосредоточься на литературном и контекстном анализе. Пиши на языке текста. Ответь только комментарием, без вступлений.`;
+
+            const comment = await callGroq([
+                { role: 'system', content: 'Ты — вдумчивый литературный комментатор. Не выдумываешь факты, которых не знаешь точно. Отвечаешь на языке предложенного текста.' },
+                { role: 'user', content: prompt }
+            ], 700);
+
+            openModal('💬 Комментарий', `<div class="comment-text">${escapeHtml(comment)}</div>`);
+        } catch (err) {
+            openModal('Комментарий', `<div style="color:#ff6b6b;">❌ Ошибка: ${escapeHtml(err.message)}</div>`);
+        }
+    });
+
+    // --- «Оригинал»: сравнение выделения с загруженным файлом B ---
+    // Определяем номер главы (по порядку) абзаца — используем для того, чтобы
+    // искать соответствие в оригинале не по всей книге, а в районе той же главы
+    function getChapterIndexForParagraph(p) {
+        if (!p) return 0;
+        let idx = 0;
+        let el = p.previousElementSibling;
+        while (el) {
+            if (el.classList && el.classList.contains('chapter-title')) idx++;
+            el = el.previousElementSibling;
+        }
+        return idx;
+    }
+    // Берём главу с тем же порядковым номером в оригинале, плюс по одной
+    // соседней с каждой стороны — на случай смещения нумерации на главу.
+    // Если книга короткая или число глав сильно расходится — просто берём весь текст.
+    function getOriginalSearchScope(chapterIdx) {
+        const chapters = READER.originalChapters || [];
+        if (chapters.length <= 3 || chapterIdx >= chapters.length) {
+            return chapters.map(c => c.paragraphs.join('\n')).join('\n\n');
+        }
+        const from = Math.max(0, chapterIdx - 1);
+        const to = Math.min(chapters.length - 1, chapterIdx + 1);
+        return chapters.slice(from, to + 1).map(c => c.paragraphs.join('\n')).join('\n\n');
+    }
+
+    $('selectionOriginalBtn').addEventListener('click', async () => {
+        const sel = window.getSelection();
+        const selectedText = sel.toString().trim();
+        if (!selectedText || !READER.hasOriginal) return;
+        if (!READER.apiKey) { promptForApiKey(); return; }
+
+        selectionToolbar.classList.remove('open');
+        openModal('Сравнение с оригиналом', '<div class="loading"><div class="loading-spinner"></div>Поиск соответствия в оригинале...</div>');
+
+        try {
+            const anchorEl = sel.anchorNode && sel.anchorNode.nodeType === 3 ? sel.anchorNode.parentElement : sel.anchorNode;
+            const para = anchorEl ? anchorEl.closest('p[id^="p-"]') : null;
+            const chapterIdx = getChapterIndexForParagraph(para);
+            const scopedOriginalText = getOriginalSearchScope(chapterIdx);
+            let targetLangHint = detectLang(scopedOriginalText) === 'ru-RU' ? 'русский' : 'английский';
+            // Страховка: не просим перевести выделение на тот же язык, на котором оно уже есть
+            const selectionLangLabel = detectLang(selectedText) === 'ru-RU' ? 'русский' : 'английский';
+            if (targetLangHint === selectionLangLabel) targetLangHint = selectionLangLabel === 'русский' ? 'английский' : 'русский';
+
+            const translatePrompt = `Переведи следующий текст на ${targetLangHint} язык максимально близко по смыслу. Ответь только переводом, без комментариев:\n\n${selectedText}`;
+            const translated = await callGroq([
+                { role: 'system', content: 'Ты — профессиональный переводчик.' },
+                { role: 'user', content: translatePrompt }
+            ], 1000);
+
+            const wordCount = translated.split(/\s+/).filter(Boolean).length;
+            const searchPrompt = `В приведённом ниже тексте найди ТОЧНЫЙ фрагмент, соответствующий этому отрывку по смыслу:\n\n"${translated}"\n\nТекст для поиска (только для поиска, не отвечай им целиком):\n${scopedOriginalText.slice(0, 15000)}\n\nПравила:\n- Отрывок выше — примерно ${wordCount} слов. Процитируй фрагмент примерно такого же объёма — одно-два предложения, не больше.\n- Даже если нужный фрагмент внутри длинного абзаца, процитируй ТОЛЬКО его, без соседних предложений.\n- Ответь только точной цитатой, без кавычек и пояснений.`;
+            const quote = await callGroq([
+                { role: 'system', content: 'Ты — специалист по тексту, отвечаешь только точными цитатами.' },
+                { role: 'user', content: searchPrompt }
+            ], 500);
+
+            openModal('📄 Сравнение с оригиналом', `
+                <div style="margin-bottom:1rem;">
+                    <div style="font-weight:700;color:var(--accent);margin-bottom:.3rem;">Выделено:</div>
+                    <div style="background:var(--bg-soft);padding:.7rem;border-radius:8px;">${escapeHtml(selectedText)}</div>
+                </div>
+                <div>
+                    <div style="font-weight:700;color:var(--accent);margin-bottom:.3rem;">Оригинал:</div>
+                    <div style="background:var(--bg-soft);padding:.7rem;border-radius:8px;font-style:italic;">${escapeHtml(quote)}</div>
+                </div>
+            `);
+        } catch (err) {
+            openModal('Сравнение с оригиналом', `<div style="color:#ff6b6b;">❌ Ошибка: ${escapeHtml(err.message)}</div>`);
+        }
+    });
+
+    // ============================================================
+    // «Перевод»: перевод выделенного слова/отрывка (кнопка в тулбаре выделения,
+    // рядом с «Комментарий» — вместо прежнего тапа по слову).
+    // Использует неофициальный (без ключа) эндпоинт Google Translate — тот же
+    // механизм, на котором держится множество бесплатных переводчиков и
+    // расширений. Официально не документирован и не гарантирован Google,
+    // может измениться/начать ограничивать частоту запросов без предупреждения.
+    // Но при этом не требует ни платного API, ни ключа Groq — работает даже
+    // если Groq-ключ вообще не введён.
+    async function translateWithGoogle(text, targetLangCode) {
+        const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLangCode}&dt=t&q=${encodeURIComponent(text)}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('Google Translate недоступен (HTTP ' + res.status + ')');
+        const data = await res.json();
+        if (!data || !data[0]) throw new Error('Не удалось разобрать ответ переводчика');
+        return data[0].map(seg => seg[0]).join('');
+    }
+
+    $('selectionTranslateBtn').addEventListener('click', async () => {
+        const sel = window.getSelection();
+        const selectedText = sel.toString().trim();
+        if (!selectedText) return;
+
+        selectionToolbar.classList.remove('open');
+        openModal('Перевод', '<div class="loading"><div class="loading-spinner"></div>Перевожу...</div>');
+
+        try {
+            const originalLang = READER.hasOriginal && READER.originalChapters[0] && READER.originalChapters[0].paragraphs[0]
+                ? detectLang(READER.originalChapters[0].paragraphs[0]) : null;
+            const selLang = detectLang(selectedText);
+            let targetLang = originalLang
+                ? (originalLang === 'ru-RU' ? 'ru' : 'en')
+                : (selLang === 'ru-RU' ? 'en' : 'ru');
+            // Страховка: никогда не просим перевести текст на тот же язык, на котором он уже есть
+            const selLangCode = selLang === 'ru-RU' ? 'ru' : 'en';
+            if (targetLang === selLangCode) targetLang = selLangCode === 'ru' ? 'en' : 'ru';
+
+            const translation = await translateWithGoogle(selectedText, targetLang);
+
+            openModal('🌐 Перевод', `
+                <div style="margin-bottom:1rem;">
+                    <div style="font-weight:700;color:var(--accent);margin-bottom:.3rem;">Выделено:</div>
+                    <div style="background:var(--bg-soft);padding:.7rem;border-radius:8px;">${escapeHtml(selectedText)}</div>
+                </div>
+                <div>
+                    <div style="font-weight:700;color:var(--accent);margin-bottom:.3rem;">Перевод:</div>
+                    <div style="background:var(--bg-soft);padding:.7rem;border-radius:8px;font-style:italic;">${escapeHtml(translation)}</div>
+                </div>
+            `);
+        } catch (err) {
+            openModal('Перевод', `<div style="color:#ff6b6b;">❌ Ошибка: ${escapeHtml(err.message)}</div>`);
+        }
+    });
+
+    // ============================================================
+    // PWA: регистрация service worker
+    // ============================================================
+    // Работает только при обслуживании по http(s) — при открытии как
+    // локальный файл (file:// / content://) браузер не даёт SW регистрироваться,
+    // и это ожидаемо: сама установка "на экран" тоже требует настоящего хостинга.
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('sw.js').catch((err) => {
+                console.warn('Service worker не зарегистрирован (это нормально при открытии как локальный файл):', err.message);
+            });
+        });
+    }
+</script>
+</body>
+</html>

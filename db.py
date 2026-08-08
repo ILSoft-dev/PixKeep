@@ -1,6 +1,6 @@
 """
 db.py
-v5.1 - multiple Google accounts per Telegram user + standing settings, in Supabase
+v5.2 - multiple Google accounts per Telegram user + standing settings, in Supabase
 
 Tables (create once, SQL in README):
     user_settings(telegram_id bigint primary key,
@@ -18,6 +18,12 @@ Tables (create once, SQL in README):
                     unique (telegram_id, email))
 
 Changelog:
+- v5.2: BUGFIX — get_settings() was still SELECTing only the original two
+        columns, so auto_date_folder (added in v5.1) never actually came
+        back from Supabase; it silently fell back to its default every
+        time, which is why the /settings checkbox never reflected a real
+        toggle. Select list is now built from DEFAULT_SETTINGS.keys() so
+        this can't go stale again when a future setting is added.
 - v5.1: added auto_date_folder setting — when on, the bot skips asking for
         a folder name and creates/uses one named after the files' capture
         date (DD.MM.YY) automatically.
@@ -42,9 +48,13 @@ DEFAULT_SETTINGS = {
 
 # --------------------------------------------------------------- settings ---
 def get_settings(telegram_id: int) -> dict:
+    # Select columns built from DEFAULT_SETTINGS.keys() on purpose — adding a
+    # new setting there automatically includes it here too, so this can't
+    # silently go stale again the way it did with auto_date_folder.
+    columns = ", ".join(DEFAULT_SETTINGS.keys())
     resp = (
         _supabase.table("user_settings")
-        .select("clean_metadata, anonymize_names")
+        .select(columns)
         .eq("telegram_id", telegram_id)
         .limit(1)
         .execute()

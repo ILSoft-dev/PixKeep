@@ -1,15 +1,6 @@
 """
 disk_utils.py
-v3.2 - Yandex.Disk REST API helpers (async, aiohttp)
-
-Changelog:
-- v3.2: reverted get_disk_info()/GET /v1/disk experiment — confirmed by a
-        real 403 that cloud_api:disk.app_folder does NOT cover general
-        account info; the only way to get quota is a broader read scope,
-        and the trade-off (whole-disk read access just to show a number)
-        wasn't worth it. Staying app_folder-only, no /space command.
-- v3.1: added get_disk_info() for /space command (total/used quota).
-- v3.0: initial Yandex.Disk backend (ensure_folder, upload_file, publish).
+v3.0 - Yandex.Disk REST API helpers (async, aiohttp)
 
 Replaces the previous Google drive_utils.py.
 API docs: https://yandex.ru/dev/disk-api/doc/ru/reference/

@@ -1,8 +1,14 @@
 """
 main.py
-v5.3 - CleanDrive Bot (multi-user, multi-account, Google Drive backend, admin-only)
+v5.4 - CleanDrive Bot (multi-user, multi-account, Google Drive backend, admin-only)
 
 Changelog:
+- v5.4: added /version — replies with the running code's version string.
+        Added purely as a deployment diagnostic: several rounds of "the
+        feature isn't there" turned out to be Render still running an old
+        deploy, indistinguishable from an actual code bug without a way to
+        ask the running instance what it actually is. Check /version after
+        every deploy going forward.
 - v5.3: added auto_date_folder setting (/settings, third checkbox). When on,
         the bot skips the "укажите имя папки" text prompt entirely: it reads
         each file's EXIF capture date (falling back to the Telegram message's
@@ -81,6 +87,8 @@ continue on error) -> report + public link -> delete succeeded messages.
 
 Runs an aiohttp server (OAuth callback + Render port) alongside aiogram polling.
 """
+VERSION = "5.4"  # bump on every change; check via /version to confirm what's actually deployed
+
 import asyncio
 import logging
 import os
@@ -245,6 +253,13 @@ async def logout(message: Message):
         "Токены удалены из базы. Доступ приложения можно также отозвать вручную "
         "на странице myaccount.google.com/permissions."
     )
+
+
+@dp.message(Command("version"))
+async def version_cmd(message: Message):
+    """Diagnostic: confirms which code is actually running on the server,
+    since a stale deploy is indistinguishable from a code bug otherwise."""
+    await message.answer(f"CleanDrive v{VERSION}")
 
 
 def _settings_keyboard(s: dict) -> InlineKeyboardMarkup:
@@ -720,6 +735,7 @@ BOT_COMMANDS = [
     BotCommand(command="accounts", description="Аккаунты: список и переключение"),
     BotCommand(command="settings", description="Настройки очистки и переименования"),
     BotCommand(command="logout", description="Отключить все аккаунты"),
+    BotCommand(command="version", description="Какая версия кода сейчас работает"),
 ]
 
 
